@@ -197,6 +197,27 @@ str get_time()
 // ==============================================
 // ==============================================
 
+
+
+struct Condition
+{
+    str rating;
+    char op;
+    u32 value;
+};
+
+struct Rule
+{
+    Condition condition;
+    str destination;
+};
+
+struct Part
+{
+    str rating;
+    u32 value;
+};
+
 u64 part1()
 {
     //
@@ -204,7 +225,7 @@ u64 part1()
     // reddit.com/r/adventofcode/comments/18luw6q/2023_day_17_a_longform_tutorial_on_day_17/
     //
 
-    auto file_path = "res\\input.txt";
+    auto file_path = "res\\test.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
@@ -212,9 +233,98 @@ u64 part1()
     auto input = str(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 
-    for (auto& line : split_string(input, "\n"))
+    auto tokens = split_string(input, "\n\n");
+    const auto& workflows_s = tokens[0];
+    const auto& ratings_s = tokens[1];
+
+    map<str, vec<Rule>, std::less<>> workflows;
+    vec<map<str, u32>> parts;
+
+    // line: {x=787,m=2655,a=1222,s=2876}
+    std::regex pattern(R"((\w)=(\d+))");
+    for (auto line : split_string(ratings_s, "\n"))
     {
+        std::sregex_iterator it(line.begin(), line.end(), pattern);
+        std::sregex_iterator end;
+
+        map<str, u32> part;
+        while (it != end)
+        {
+            std::smatch match = *it;
+
+            str rating = match[1].str();
+            u32 value = std::stoul(match[2].str());
+
+            part[rating] = value;
+
+            ++it;
+        }
+        parts.emplace_back(part);
+
+        //line.erase(line.begin());
+        //line.erase(line.end()-1);
+
+        //for (const auto& part : split_string(line, ","))
+        //{
+        //    // x=787
+        //    split_string(part, "=");
+        //}
+
     }
+    int s = 0;
+
+
+    // workflow: {name:str, rules: [rule1, rule2,...]}
+    // rule1: {condition, destination:str}
+    // rule2: {condition, destination:str}
+    // condition: {rating: str, value: u32, op:char}
+
+    // parts: {part, rating}
+#if 0
+    apply(rule, part)
+    {
+        part_val = part[rule.condition.rating];
+        if (rule.condition.op == '>')
+        {
+            res = part_val > rule.condition.value;
+        }
+        else
+        {
+            res = part_val < rule.condition.value;
+        }
+        return res 
+    }
+
+    for (part : parts)
+    {
+        // part: {x=787,m=2655,a=1222,s=2876}
+
+        workflow = workflows["in"];
+
+        while (true)
+        {
+            for (rule : workflow.rules)
+            {
+                if (apply(rule, part))
+                {
+                    workflow = workflows[rule.destination];
+                    break;
+                }
+            }
+
+            if (workflow.name == "A")
+            {
+                acc += part.x + part.m, part.a, part.s;
+                break;
+            }
+            else if (workflow.name == "R")
+            {
+                break;
+            }
+        }
+
+    }
+#endif
 
     return 0;
 }
