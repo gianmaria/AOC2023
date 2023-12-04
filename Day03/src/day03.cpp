@@ -247,7 +247,7 @@ struct Num_Comp
     }
 };
 
-void red_nums_in_row(Grid& grid, vec<Num>& nums, i32 r)
+void read_nums_in_row(Grid& grid, vec<Num>& nums, i32 r)
 {
     if (r < 0)
         return;
@@ -369,9 +369,9 @@ void part2()
             if (is_gear(ch))
             {
                 vec<Num> nums;
-                red_nums_in_row(grid, nums, r - 1);
-                red_nums_in_row(grid, nums, r);
-                red_nums_in_row(grid, nums, r + 1);
+                read_nums_in_row(grid, nums, r - 1);
+                read_nums_in_row(grid, nums, r);
+                read_nums_in_row(grid, nums, r + 1);
 
                 i32 ratio = calculate_gear_ratio(grid, nums, r, c);
                 acc += ratio;
