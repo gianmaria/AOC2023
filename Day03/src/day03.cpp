@@ -129,54 +129,17 @@ bool is_digit_adjacent_to_symbol(Grid& grid, i32 r, i32 c)
 {
     bool res = false;
 
-    // up (r-1, c)
-    if (is_in_bounds(grid, r - 1, c))
+    for (i32 rr = -1; rr <= 1; ++rr)
     {
-        res |= is_symbol(grid.at(r - 1).at(c));
+        for (i32 cc = -1; cc <= 1; ++cc)
+        {
+            if (is_in_bounds(grid, r + rr, c + cc))
+            {
+                res |= is_symbol(grid.at(r +rr).at(c+cc));
+            }
+        }
     }
-
-    // down (r+1, c)
-    if (is_in_bounds(grid, r + 1, c))
-    {
-        res |= is_symbol(grid.at(r + 1).at(c));
-    }
-
-    // left (r, c-1)
-    if (is_in_bounds(grid, r, c - 1))
-    {
-        res |= is_symbol(grid.at(r).at(c - 1));
-    }
-
-    // right (r, c+1)
-    if (is_in_bounds(grid, r, c + 1))
-    {
-        res |= is_symbol(grid.at(r).at(c + 1));
-    }
-
-    // up left (r-1, c-1)
-    if (is_in_bounds(grid, r - 1, c - 1))
-    {
-        res |= is_symbol(grid.at(r - 1).at(c - 1));
-    }
-
-    // up right (r-1, c+1)
-    if (is_in_bounds(grid, r - 1, c + 1))
-    {
-        res |= is_symbol(grid.at(r - 1).at(c + 1));
-    }
-
-    // down left (r+1, c-1)
-    if (is_in_bounds(grid, r + 1, c - 1))
-    {
-        res |= is_symbol(grid.at(r + 1).at(c - 1));
-    }
-
-    // down right (r+1, c+1)
-    if (is_in_bounds(grid, r + 1, c + 1))
-    {
-        res |= is_symbol(grid.at(r + 1).at(c + 1));
-    }
-
+    
     return res;
 }
 
@@ -304,7 +267,7 @@ void red_nums_in_row(Grid& grid, vec<Num>& nums, i32 r)
         {
             Num num;
             num.row = r;
-            
+
             num.start_col = c;
 
             while (c < cols and
@@ -314,7 +277,7 @@ void red_nums_in_row(Grid& grid, vec<Num>& nums, i32 r)
                 ++c;
             }
 
-            num.end_col = c-1;
+            num.end_col = c - 1;
 
             nums.push_back(std::move(num));
         }
@@ -355,12 +318,11 @@ i32 calculate_gear_ratio(Grid& grid, const vec<Num>& nums, i32 gear_r, i32 gear_
         }
     }
 
-
     if (num_set.size() == 2)
     {
         i32 acc = std::stoi(num_set.begin()->num);
         acc *= std::stoi(num_set.rbegin()->num);
-        
+
         return acc;
     }
 
