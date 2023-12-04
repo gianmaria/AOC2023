@@ -2,22 +2,22 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
+#include <assert.h>
 #include <cstdint>
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <string_view>
-#include <set>
-#include <ranges>
-#include <format>
-#include <vector>
-#include <regex>
 #include <iterator>
 #include <map>
 #include <queue>
-#include <assert.h>
+#include <ranges>
+#include <regex>
+#include <set>
+#include <string>
+#include <string_view>
+#include <vector>
 
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -89,10 +89,10 @@ str trim(str_cref s)
 
 vector<str> split_string(str_cref line, char sep)
 {
-    vector<str> res{};
-    std::istringstream iss{ line };
+    vector<str> res {};
+    std::istringstream iss {line};
 
-    str token{};
+    str token {};
 
     while (std::getline(iss, token, sep))
     {
@@ -108,7 +108,7 @@ void part1()
     auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
 
-    i32 acc{};
+    i32 acc {};
 
     for (str line;
          std::getline(ifs, line);
@@ -173,17 +173,17 @@ void part1()
 
 struct Card
 {
-    i32 num{};
+    i32 num {};
     vec<i32> winning_numbers;
     vec<i32> your_numbers;
-    vec<i32> common;
+    i32 matches {};
 };
 
-void compute_scratchcards_helper(const vec<Card>& scratchcards, 
-                                 const Card& card,
-                                 i32& counter)
+void compute_scratchcards(const vec<Card>& scratchcards,
+                          const Card& card,
+                          i32& counter)
 {
-    auto wins = card.common.size();
+    auto wins = card.matches;
 
     for (auto j = 0;
          j < wins;
@@ -191,34 +191,13 @@ void compute_scratchcards_helper(const vec<Card>& scratchcards,
     {
         ++counter;
         auto offset = card.num;
-        compute_scratchcards_helper(scratchcards, 
-                                    scratchcards[j+offset], 
-                                    counter);
+        compute_scratchcards(scratchcards,
+                             scratchcards[j + offset],
+                             counter);
     }
 }
 
-i32 compute_scratchcards(vec<Card>& scratchcards)
-{
-    i32 counter = scratchcards.size();
 
-    for (const auto& card : scratchcards)
-    {
-        auto wins = card.common.size();
-
-        for (auto j = 0;
-             j < wins;
-             ++j)
-        {
-            ++counter;
-            auto offset = card.num;
-            compute_scratchcards_helper(scratchcards, 
-                                        scratchcards[j+offset], 
-                                        counter);
-        }
-    }
-
-    return counter;
-}
 
 void part2()
 {
@@ -271,18 +250,28 @@ void part2()
             token = match.suffix();
         }
 
-        std::ranges::copy_if(card.winning_numbers, std::back_inserter(card.common),
+        vec<i32> common;
+        std::ranges::copy_if(card.winning_numbers, std::back_inserter(common),
                              [&card](i32 val)
         {
             return std::ranges::find(card.your_numbers, val) != card.your_numbers.end();
         });
+        card.matches = common.size();
 
         scratchcards.push_back(std::move(card));
         int s = 0;
     }
 
 
-    i32 res = compute_scratchcards(scratchcards);
+    i32 counter = scratchcards.size();
+
+    for (const auto& card : scratchcards)
+    {
+        compute_scratchcards(scratchcards,
+                             card, counter);
+    }
+
+    i32 res = counter;
 
     cout << "part 2 (" << file_path << ") " << res << endl;
 }
