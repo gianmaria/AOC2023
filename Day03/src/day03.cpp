@@ -60,32 +60,37 @@ str read_file(const char* file_path)
 }
 
 // Trim from the beginning (left)
-str ltrim(str_cref s) {
-    auto it = std::find_if(s.begin(), s.end(), [](char ch) {
+str ltrim(str_cref s)
+{
+    auto it = std::find_if(s.begin(), s.end(), [](char ch)
+    {
         return !std::isspace(static_cast<unsigned char>(ch));
     });
     return str(it, s.end());
 }
 
 // Trim from the end (right)
-str rtrim(str_cref s) {
-    auto it = std::find_if(s.rbegin(), s.rend(), [](char ch) {
+str rtrim(str_cref s)
+{
+    auto it = std::find_if(s.rbegin(), s.rend(), [](char ch)
+    {
         return !std::isspace(static_cast<unsigned char>(ch));
     });
     return str(s.begin(), it.base());
 }
 
 // Trim from both ends
-str trim(str_cref s) {
+str trim(str_cref s)
+{
     return ltrim(rtrim(s));
 }
 
 vector<str> split_string(str_cref line, char sep)
 {
-    vector<str> res {};
-    std::istringstream iss {line};
+    vector<str> res{};
+    std::istringstream iss{ line };
 
-    str token {};
+    str token{};
 
     while (std::getline(iss, token, sep))
     {
@@ -180,13 +185,13 @@ void part1()
     auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
 
-    auto grid = vec<vec<char>> {};
+    auto grid = vec<vec<char>>{};
 
     for (str line;
          std::getline(ifs, line);
          )
     {
-        auto row = vec<char> {};
+        auto row = vec<char>{};
 
         for (char c : line)
         {
@@ -329,19 +334,32 @@ void red_nums_in_row(Grid& grid, vec<Num>& nums, i64 r)
     int s = 0;
 }
 
-i64 calculate_gear_ratio(Grid& grid, vec<Num>& nums, i64 gear_r, i64 gear_c)
+bool is_between(i32 num, i32 min, i32 max)
+{
+    return (num >= min) and (num <= max);
+}
+
+bool is_suitable(const Num& num, i64 gear_r, i64 gear_c)
+{
+    return (num.begin.r == gear_r)
+        and
+        is_between(gear_c, num.begin.c, num.end.c);
+}
+
+i64 calculate_gear_ratio(Grid& grid, const vec<Num>& nums, i64 gear_r, i64 gear_c)
 {
     set<Num, Num_Comp> num_set;
 
-    // up (r-1, c)
-    if (is_in_bounds(grid, gear_r - 1, gear_c))
+    for (i32 r = -1; r <= 1; ++r)
     {
-        for (const auto& num : nums)
+        for (i32 c = -1; c <= 1; ++c)
         {
-            if (num.begin.r == gear_r - 1)
+            if (not is_in_bounds(grid, gear_r + r, gear_c + c))
+                continue;
+
+            for (const auto& num : nums)
             {
-                if (gear_c >= num.begin.c and
-                    gear_c <= num.end.c)
+                if (is_suitable(num, gear_r + r, gear_c + c))
                 {
                     num_set.insert(num);
                 }
@@ -349,117 +367,6 @@ i64 calculate_gear_ratio(Grid& grid, vec<Num>& nums, i64 gear_r, i64 gear_c)
         }
     }
 
-    // down (r+1, c)
-    if (is_in_bounds(grid, gear_r + 1, gear_c))
-    {
-        for (const auto& num : nums)
-        {
-            if (num.begin.r == gear_r + 1)
-            {
-                if (gear_c >= num.begin.c and
-                    gear_c <= num.end.c)
-                {
-                    num_set.insert(num);
-                }
-            }
-        }
-    }
-
-    // left (r, c-1)
-    if (is_in_bounds(grid, gear_r, gear_c - 1))
-    {
-        for (const auto& num : nums)
-        {
-            if (num.begin.r == gear_r)
-            {
-                if (gear_c - 1 >= num.begin.c and
-                    gear_c - 1 <= num.end.c)
-                {
-                    num_set.insert(num);
-                }
-            }
-        }
-    }
-
-    // right (r, c+1)
-    if (is_in_bounds(grid, gear_r, gear_c + 1))
-    {
-        for (const auto& num : nums)
-        {
-            if (num.begin.r == gear_r)
-            {
-                if (gear_c + 1 >= num.begin.c and
-                    gear_c + 1 <= num.end.c)
-                {
-                    num_set.insert(num);
-                }
-            }
-        }
-    }
-
-    // up left (r-1, c-1)
-    if (is_in_bounds(grid, gear_r - 1, gear_c - 1))
-    {
-        for (const auto& num : nums)
-        {
-            if (num.begin.r == gear_r - 1)
-            {
-                if (gear_c - 1 >= num.begin.c and
-                    gear_c - 1 <= num.end.c)
-                {
-                    num_set.insert(num);
-                }
-            }
-        }
-    }
-
-    // up right (r-1, c+1)
-    if (is_in_bounds(grid, gear_r - 1, gear_c + 1))
-    {
-        for (const auto& num : nums)
-        {
-            if (num.begin.r == gear_r - 1)
-            {
-                if (gear_c + 1 >= num.begin.c and
-                    gear_c + 1 <= num.end.c)
-                {
-                    num_set.insert(num);
-                }
-            }
-        }
-    }
-
-    // down left (r+1, c-1)
-    if (is_in_bounds(grid, gear_r + 1, gear_c - 1))
-    {
-        for (const auto& num : nums)
-        {
-            if (num.begin.r == gear_r + 1)
-            {
-                if (gear_c - 1 >= num.begin.c and
-                    gear_c - 1 <= num.end.c)
-                {
-                    num_set.insert(num);
-                }
-            }
-        }
-    }
-
-    // down right (r+1, c+1)
-    if (is_in_bounds(grid, gear_r + 1, gear_c + 1))
-    {
-        for (const auto& num : nums)
-        {
-            if (num.begin.r == gear_r + 1)
-            {
-                if (gear_c + 1 >= num.begin.c and
-                    gear_c + 1 <= num.end.c)
-                {
-                    num_set.insert(num);
-                }
-            }
-        }
-    }
 
     if (num_set.size() == 2)
     {
@@ -480,13 +387,13 @@ void part2()
     auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
 
-    auto grid = Grid {};
+    auto grid = Grid{};
 
     for (str line;
          std::getline(ifs, line);
          )
     {
-        auto row = vec<char> {};
+        auto row = vec<char>{};
 
         for (char c : line)
         {
