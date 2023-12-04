@@ -358,12 +358,9 @@ i64 calculate_gear_ratio(Grid& grid, const vec<Num>& nums, i64 gear_r, i64 gear_
 
     if (num_set.size() == 2)
     {
-        i64 acc = 1;
-        for (auto& num : num_set)
-        {
-            acc *= std::stoi(num.num);
-        }
-
+        i64 acc = std::stoi(num_set.begin()->num);
+        acc *= std::stoi(num_set.rbegin()->num);
+        
         return acc;
     }
 
