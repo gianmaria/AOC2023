@@ -179,30 +179,45 @@ struct Card
     vec<i32> common;
 };
 
+void compute_scratchcards_helper(const vec<Card>& scratchcards, 
+                                 const Card& card,
+                                 i32& counter)
+{
+    auto wins = card.common.size();
+
+    for (auto j = 0;
+         j < wins;
+         ++j)
+    {
+        ++counter;
+        auto offset = card.num;
+        compute_scratchcards_helper(scratchcards, 
+                                    scratchcards[j+offset], 
+                                    counter);
+    }
+}
+
 i32 compute_scratchcards(vec<Card>& scratchcards)
 {
-    u64 i = 0;
+    i32 counter = scratchcards.size();
 
-    while (true)
+    for (const auto& card : scratchcards)
     {
-        if (i >= scratchcards.size())
-        {
-            break;
-        }
+        auto wins = card.common.size();
 
-        const auto card = scratchcards.at(i++);
-
-        for (u64 j = 0;
-             j < card.common.size();
+        for (auto j = 0;
+             j < wins;
              ++j)
         {
+            ++counter;
             auto offset = card.num;
-            scratchcards.push_back(scratchcards[j + offset]);
+            compute_scratchcards_helper(scratchcards, 
+                                        scratchcards[j+offset], 
+                                        counter);
         }
-
     }
 
-    return static_cast<i32>(scratchcards.size());
+    return counter;
 }
 
 void part2()
