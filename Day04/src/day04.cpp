@@ -16,6 +16,7 @@
 #include <regex>
 #include <iterator>
 #include <map>
+#include <queue>
 #include <assert.h>
 
 using u8 = uint8_t;
@@ -170,13 +171,119 @@ void part1()
     cout << "part 1 (" << file_path << ") " << res << endl;
 }
 
+struct Card
+{
+    i32 num{};
+    vec<i32> winning_numbers;
+    vec<i32> your_numbers;
+    vec<i32> common;
+};
+
+i32 compute_scratchcards(vec<Card>& scratchcards)
+{
+    bool done = false;
+
+    u64 i = 0;
+    while (!done)
+    {
+        if (i >= scratchcards.size())
+        {
+            done = true;
+            continue;
+        }
+
+        const auto card = scratchcards.at(i++);
+        
+        auto matching_numbers = card.common.size();
+        if (matching_numbers > 0)
+        {
+            for (u64 j = 0;
+                 j < matching_numbers;
+                 ++j)
+            {
+                auto offset = card.num;
+                scratchcards.push_back(scratchcards[j+offset]);
+            }
+        }
+    }
+
+    return static_cast<i32>(scratchcards.size());
+}
+
+void part2()
+{
+    auto file_path = "res\\input.txt";
+    auto ifs = std::ifstream(file_path);
+
+    i32 id = 1;
+
+    vec<Card> scratchcards;
+
+    // collect all the cards
+    for (str line;
+         std::getline(ifs, line);
+         )
+    {
+        Card card;
+        card.num = id++;
+
+        auto parts = split_string(line, ':');
+        assert(parts.size() == 2);
+
+        parts = split_string(parts.at(1), '|');
+        assert(parts.size() == 2);
+
+        const auto pattern = std::regex(R"((\d+))");
+
+        // exctract winning numbers
+        auto token = parts.at(0);
+        for (std::smatch match;
+             std::regex_search(token, match, pattern);
+             )
+        {
+            assert(match.size() == 2);
+
+            card.winning_numbers.push_back(std::stoi(match[1].str()));
+            
+            token = match.suffix();
+        }
+
+        // exctract your numbers
+        token = parts.at(1);
+        for (std::smatch match;
+             std::regex_search(token, match, pattern);
+             )
+        {
+            assert(match.size() == 2);
+
+            card.your_numbers.push_back(std::stoi(match[1].str()));
+
+            token = match.suffix();
+        }
+
+        std::ranges::copy_if(card.winning_numbers, std::back_inserter(card.common),
+                             [&card](i32 val)
+        {
+            return std::ranges::find(card.your_numbers, val) != card.your_numbers.end();
+        });
+
+        scratchcards.push_back(std::move(card));
+        int s = 0;
+    }
+
+
+    i32 res = compute_scratchcards(scratchcards);    
+
+    cout << "part 2 (" << file_path << ") " << res << endl;
+}
+
 
 int main()
 {
 
     try
     {
-        //part1();
+        part1();
         part2();
     }
     catch (const std::exception& e)
