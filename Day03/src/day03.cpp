@@ -260,38 +260,27 @@ bool is_gear(char ch)
     return ch == '*';
 }
 
-struct Point
-{
-    i64 r = 0;
-    i64 c = 0;
-};
-
-bool operator<(const Point& lhs, const Point& rhs)
-{
-    if (lhs.r == rhs.r)
-    {
-        return lhs.c < rhs.c;
-    }
-    else
-    {
-        return lhs.r < rhs.r;
-    }
-}
 
 struct Num
 {
     str num;
-    Point begin;
-    Point end;
+    i32 row{};
+    i32 start_col{};
+    i32 end_col{};
 };
 
 struct Num_Comp
 {
     bool operator()(const Num& lhs, const Num& rhs) const
     {
-        bool res = lhs.begin < rhs.begin and
-            lhs.end < rhs.end;
-        return res;
+        if (lhs.row == rhs.row)
+        {
+            return lhs.start_col < rhs.start_col;
+        }
+        else
+        {
+            return lhs.row < rhs.row;
+        }
     }
 };
 
@@ -314,8 +303,9 @@ void red_nums_in_row(Grid& grid, vec<Num>& nums, i64 r)
         if (std::isdigit(ch))
         {
             Num num;
-            num.begin.r = r;
-            num.begin.c = c;
+            num.row = r;
+            
+            num.start_col = c;
 
             while (c < cols and
                    std::isdigit(col.at(c)))
@@ -324,8 +314,7 @@ void red_nums_in_row(Grid& grid, vec<Num>& nums, i64 r)
                 ++c;
             }
 
-            num.end.r = r;
-            num.end.c = c - 1;
+            num.end_col = c-1;
 
             nums.push_back(std::move(num));
         }
@@ -341,9 +330,8 @@ bool is_between(i32 num, i32 min, i32 max)
 
 bool is_suitable(const Num& num, i64 gear_r, i64 gear_c)
 {
-    return (num.begin.r == gear_r)
-        and
-        is_between(gear_c, num.begin.c, num.end.c);
+    return (num.row == gear_r) and
+        is_between(gear_c, num.start_col, num.end_col);
 }
 
 i64 calculate_gear_ratio(Grid& grid, const vec<Num>& nums, i64 gear_r, i64 gear_c)
