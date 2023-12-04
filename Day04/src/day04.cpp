@@ -134,7 +134,7 @@ void part1()
             assert(match.size() == 2);
 
             winning_numbers.push_back(std::stoi(match[1].str()));
-            
+
             token = match.suffix();
         }
 
@@ -160,7 +160,7 @@ void part1()
 
         if (common.size() > 0)
         {
-            i32 res = std::pow(2, common.size()-1);
+            i32 res = std::pow(2, common.size() - 1);
             acc += res;
         }
         int s = 0;
@@ -181,30 +181,25 @@ struct Card
 
 i32 compute_scratchcards(vec<Card>& scratchcards)
 {
-    bool done = false;
-
     u64 i = 0;
-    while (!done)
+
+    while (true)
     {
         if (i >= scratchcards.size())
         {
-            done = true;
-            continue;
+            break;
         }
 
         const auto card = scratchcards.at(i++);
-        
-        auto matching_numbers = card.common.size();
-        if (matching_numbers > 0)
+
+        for (u64 j = 0;
+             j < card.common.size();
+             ++j)
         {
-            for (u64 j = 0;
-                 j < matching_numbers;
-                 ++j)
-            {
-                auto offset = card.num;
-                scratchcards.push_back(scratchcards[j+offset]);
-            }
+            auto offset = card.num;
+            scratchcards.push_back(scratchcards[j + offset]);
         }
+
     }
 
     return static_cast<i32>(scratchcards.size());
@@ -244,7 +239,7 @@ void part2()
             assert(match.size() == 2);
 
             card.winning_numbers.push_back(std::stoi(match[1].str()));
-            
+
             token = match.suffix();
         }
 
@@ -272,7 +267,7 @@ void part2()
     }
 
 
-    i32 res = compute_scratchcards(scratchcards);    
+    i32 res = compute_scratchcards(scratchcards);
 
     cout << "part 2 (" << file_path << ") " << res << endl;
 }
