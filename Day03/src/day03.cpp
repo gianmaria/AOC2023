@@ -112,10 +112,10 @@ bool is_symbol(char ch)
 
 using Grid = vec<vec<char>>;
 
-bool is_in_bounds(Grid& grid, i64 r, i64 c)
+bool is_in_bounds(Grid& grid, i32 r, i32 c)
 {
-    auto rows = grid.size();
-    auto cols = grid.at(0).size();
+    auto rows = static_cast<i32>(grid.size());
+    auto cols = static_cast<i32>(grid.at(0).size());
 
     bool res =
         (r >= 0 and r < rows)
@@ -125,7 +125,7 @@ bool is_in_bounds(Grid& grid, i64 r, i64 c)
     return res;
 }
 
-bool is_digit_adjacent_to_symbol(Grid& grid, i64 r, i64 c)
+bool is_digit_adjacent_to_symbol(Grid& grid, i32 r, i32 c)
 {
     bool res = false;
 
@@ -201,16 +201,16 @@ void part1()
     }
 
 
-    i64 acc = 0;
-    auto rows = grid.size();
-    auto cols = grid.at(0).size();
+    i32 acc = 0;
+    auto rows = static_cast<i32>(grid.size());
+    auto cols = static_cast<i32>(grid.at(0).size());
 
-    for (i64 r = 0;
+    for (i32 r = 0;
          r < rows;
          ++r)
     {
         // row: "467..114.."
-        for (i64 c = 0;
+        for (i32 c = 0;
              c < cols;
              ++c)
         {
@@ -229,7 +229,7 @@ void part1()
 
                 bool adj = false;
                 // for each digit in number
-                for (u64 i = c - num.size();
+                for (i32 i = c - num.size();
                      i < c;
                      ++i)
                 {
@@ -284,7 +284,7 @@ struct Num_Comp
     }
 };
 
-void red_nums_in_row(Grid& grid, vec<Num>& nums, i64 r)
+void red_nums_in_row(Grid& grid, vec<Num>& nums, i32 r)
 {
     if (r < 0)
         return;
@@ -294,7 +294,7 @@ void red_nums_in_row(Grid& grid, vec<Num>& nums, i64 r)
     auto& col = grid.at(r);
     auto cols = col.size();
 
-    for (i64 c = 0;
+    for (i32 c = 0;
          c < cols;
          ++c)
     {
@@ -328,13 +328,13 @@ bool is_between(i32 num, i32 min, i32 max)
     return (num >= min) and (num <= max);
 }
 
-bool is_suitable(const Num& num, i64 gear_r, i64 gear_c)
+bool is_suitable(const Num& num, i32 gear_r, i32 gear_c)
 {
     return (num.row == gear_r) and
         is_between(gear_c, num.start_col, num.end_col);
 }
 
-i64 calculate_gear_ratio(Grid& grid, const vec<Num>& nums, i64 gear_r, i64 gear_c)
+i32 calculate_gear_ratio(Grid& grid, const vec<Num>& nums, i32 gear_r, i32 gear_c)
 {
     set<Num, Num_Comp> num_set;
 
@@ -358,7 +358,7 @@ i64 calculate_gear_ratio(Grid& grid, const vec<Num>& nums, i64 gear_r, i64 gear_
 
     if (num_set.size() == 2)
     {
-        i64 acc = std::stoi(num_set.begin()->num);
+        i32 acc = std::stoi(num_set.begin()->num);
         acc *= std::stoi(num_set.rbegin()->num);
         
         return acc;
@@ -388,16 +388,16 @@ void part2()
     }
 
 
-    i64 acc = 0;
-    auto rows = grid.size();
-    auto cols = grid.at(0).size();
+    i32 acc = 0;
+    auto rows = static_cast<i32>(grid.size());
+    auto cols = static_cast<i32>(grid.at(0).size());
 
-    for (i64 r = 0;
+    for (i32 r = 0;
          r < rows;
          ++r)
     {
         // row: "467..114.."
-        for (i64 c = 0;
+        for (i32 c = 0;
              c < cols;
              ++c)
         {
@@ -411,14 +411,14 @@ void part2()
                 red_nums_in_row(grid, nums, r);
                 red_nums_in_row(grid, nums, r + 1);
 
-                i64 ratio = calculate_gear_ratio(grid, nums, r, c);
+                i32 ratio = calculate_gear_ratio(grid, nums, r, c);
                 acc += ratio;
             }
 
         }
     }
 
-    i64 res = acc;
+    i32 res = acc;
     cout << "part 2 (" << file_path << ") " << res << endl;
 }
 
