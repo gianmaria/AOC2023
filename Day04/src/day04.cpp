@@ -174,27 +174,23 @@ void part1()
 struct Card
 {
     i32 num {};
-    vec<i32> winning_numbers;
-    vec<i32> your_numbers;
-    i32 matches {};
+    i32 wins {};
 };
 
-void compute_scratchcards(const vec<Card>& scratchcards,
-                          const Card& card,
-                          i32& counter)
+i32 compute_scratchcards(const vec<Card>& scratchcards,
+                         const Card& card)
 {
-    auto wins = card.matches;
+    i32 counter {card.wins};
 
     for (auto j = 0;
-         j < wins;
+         j < card.wins;
          ++j)
     {
-        ++counter;
-        auto offset = card.num;
-        compute_scratchcards(scratchcards,
-                             scratchcards[j + offset],
-                             counter);
+        counter += compute_scratchcards(scratchcards,
+                                        scratchcards[j + card.num]);
     }
+
+    return counter;
 }
 
 
@@ -223,7 +219,7 @@ void part2()
         assert(parts.size() == 2);
 
         const auto pattern = std::regex(R"((\d+))");
-
+        vec<i32> winning_numbers;
         // exctract winning numbers
         auto token = parts.at(0);
         for (std::smatch match;
@@ -232,11 +228,13 @@ void part2()
         {
             assert(match.size() == 2);
 
-            card.winning_numbers.push_back(std::stoi(match[1].str()));
+            winning_numbers.push_back(std::stoi(match[1].str()));
 
             token = match.suffix();
         }
 
+
+        vec<i32> your_numbers;
         // exctract your numbers
         token = parts.at(1);
         for (std::smatch match;
@@ -245,18 +243,19 @@ void part2()
         {
             assert(match.size() == 2);
 
-            card.your_numbers.push_back(std::stoi(match[1].str()));
+            your_numbers.push_back(std::stoi(match[1].str()));
 
             token = match.suffix();
         }
 
         vec<i32> common;
-        std::ranges::copy_if(card.winning_numbers, std::back_inserter(common),
-                             [&card](i32 val)
+        std::ranges::copy_if(winning_numbers, std::back_inserter(common),
+                             [&](i32 val)
         {
-            return std::ranges::find(card.your_numbers, val) != card.your_numbers.end();
+            return std::ranges::find(your_numbers, val) != your_numbers.end();
         });
-        card.matches = common.size();
+
+        card.wins = common.size();
 
         scratchcards.push_back(std::move(card));
         int s = 0;
@@ -264,11 +263,10 @@ void part2()
 
 
     i32 counter = scratchcards.size();
-
     for (const auto& card : scratchcards)
     {
-        compute_scratchcards(scratchcards,
-                             card, counter);
+        counter += compute_scratchcards(scratchcards,
+                                        card);
     }
 
     i32 res = counter;
