@@ -2,23 +2,23 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
+#include <assert.h>
 #include <cstdint>
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <string_view>
-#include <set>
-#include <ranges>
-#include <format>
-#include <vector>
-#include <regex>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <queue>
-#include <limits>
-#include <assert.h>
+#include <ranges>
+#include <regex>
+#include <set>
+#include <string>
+#include <string_view>
+#include <vector>
 
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -109,7 +109,7 @@ bool contains(str_cref string, str_cref text)
 }
 
 template<typename T>
-bool is_between(T num, T min, T max)
+static inline bool is_between(T num, T min, T max)
 {
     return (num >= min) and (num <= max);
 }
