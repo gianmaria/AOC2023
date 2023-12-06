@@ -90,10 +90,10 @@ str trim(str_cref s)
 
 vector<str> split_string(str_cref line, char sep)
 {
-    vector<str> res{};
-    std::istringstream iss{ line };
+    vector<str> res {};
+    std::istringstream iss {line};
 
-    str token{};
+    str token {};
 
     while (std::getline(iss, token, sep))
     {
