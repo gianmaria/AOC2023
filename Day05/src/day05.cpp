@@ -266,8 +266,73 @@ void part2()
     auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
 
+    Almanac almanac;
 
-    i32 res = -1;
+    // first line is seeds
+    almanac.seeds = parse_seeds(ifs);
+
+    // parsing mappings
+    for (str line;
+         std::getline(ifs, line);
+         )
+    {
+        if (contains(line, "map:"))
+        {
+            Map map;
+
+            map.name = split_string(line, ' ')[0];
+            map.mappings = parse_mappings(ifs);
+
+            almanac.maps.push_back(std::move(map));
+        }
+
+    }
+
+    u64 res = std::numeric_limits<u64>::max();
+
+    for (u64 i = 0;
+         i < almanac.seeds.size() - 1;
+         i += 2)
+    {
+        auto start = almanac.seeds[i];
+        auto end = almanac.seeds[i] + almanac.seeds[i + 1];
+
+        for (u64 seed = start;
+             seed < end;
+             ++seed)
+        {
+            auto current_seed = seed;
+
+            //cout << "seed " << current_seed << endl;
+
+            for (const Map& map : almanac.maps)
+            {
+                const Conversion_Table* ct_to_use = nullptr;
+
+                for (const Conversion_Table& ct : map.mappings)
+                {
+                    if (is_between(current_seed, ct.src, ct.src + ct.len - 1))
+                    {
+                        ct_to_use = &ct;
+                        break;
+                    }
+                }
+
+                //cout << "    " << current_seed << " -> ";
+                if (ct_to_use != nullptr)
+                {
+                    auto offset = current_seed - ct_to_use->src;
+                    auto new_seed = ct_to_use->dest + offset;
+                    current_seed = new_seed;
+                }
+                // else seed maps to itself
+
+                //cout << current_seed << endl;
+            }
+
+            res = std::min(res, current_seed);
+        }
+    }
 
     cout << "part 2 (" << file_path << ") " << res << endl;
 }
@@ -279,7 +344,7 @@ int main()
     try
     {
         part1();
-        //part2();
+        part2();
     }
     catch (str_cref e)
     {
