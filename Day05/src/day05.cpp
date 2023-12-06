@@ -236,7 +236,7 @@ void part1()
 
             for (const Conversion_Table& ct : map.mappings)
             {
-                if (is_between(seed, ct.src, ct.src + ct.len-1))
+                if (is_between(seed, ct.src, ct.src + ct.len - 1))
                 {
                     ct_to_use = &ct;
                     break;
