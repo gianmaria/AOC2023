@@ -186,7 +186,6 @@ std::array<u32, 6> fill_occurr_map(const vec<char>& hand)
 
 auto calculate_hand_score(const vec<char>& hand) -> u32
 {
-    auto freq_map = fill_freq_map(hand);
     auto occurr_map = fill_occurr_map(hand);
 
     u32 score = 0;
@@ -365,6 +364,7 @@ vec<char> replace_J_in_hand(const vec<char>& hand)
 
 
 #if 0
+    // the long version:
 
     if (num_of_J == 5)
     {
