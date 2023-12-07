@@ -154,6 +154,9 @@ struct Hand
     u32 score {};
 };
 
+/**
+* calculate how many A, K, Q, J, etc you have in a single hand
+*/
 map<char, u32> fill_freq_map(const vec<char>& hand)
 {
     map<char, u32> freq_map;
@@ -165,10 +168,14 @@ map<char, u32> fill_freq_map(const vec<char>& hand)
     return freq_map;
 }
 
-std::array<u32, 6> fill_occurr_map(const map<char, u32>& freq_map)
+/**
+* calculates how many High card, One pair, Two pair, etc you have in single hand
+*/
+std::array<u32, 6> fill_occurr_map(const vec<char>& hand)
 {
-    std::array<u32, 6> occurr_map {};
+    auto freq_map = fill_freq_map(hand);
 
+    std::array<u32, 6> occurr_map {};
     for (const auto& [key, value] : freq_map)
     {
         occurr_map.at(value) += 1;
@@ -180,7 +187,7 @@ std::array<u32, 6> fill_occurr_map(const map<char, u32>& freq_map)
 auto calculate_hand_score(const vec<char>& hand) -> u32
 {
     auto freq_map = fill_freq_map(hand);
-    auto occurr_map = fill_occurr_map(freq_map);
+    auto occurr_map = fill_occurr_map(hand);
 
     u32 score = 0;
 
@@ -329,7 +336,7 @@ vec<char> replace_J_in_hand(const vec<char>& hand)
     auto freq_map = fill_freq_map(hand);
     freq_map.erase('J');
 
-    auto occurr_map = fill_occurr_map(freq_map);
+    auto occurr_map = fill_occurr_map(hand);
 
     char replacement_card {};
 
@@ -339,11 +346,12 @@ vec<char> replace_J_in_hand(const vec<char>& hand)
     }
     else if (num_of_J == 0)
     {
+        // nothing to do
         return mod_hand;
     }
     else
     {
-        for (u32 i = 5 - num_of_J;
+        for (u64 i = 5 - num_of_J;
              i >= 1;
              --i)
         {
@@ -494,8 +502,8 @@ void part2()
 
         auto cards = vec<char>(parts[0].begin(), parts[0].end());
         auto mod_cards = replace_J_in_hand(cards);
+
         auto bid = std::stoul(parts[1]);
-        auto score = calculate_hand_score(cards);
         auto mod_score = calculate_hand_score(mod_cards);
 
         hands.emplace_back(cards, mod_cards, bid, mod_score);
@@ -540,13 +548,13 @@ void part2()
     });
 
     u64 res = 0;
+    u32 pos = 1;
 
-    for (u64 i = 0;
-         i < hands.size();
-         ++i)
+    std::for_each(hands.begin(), hands.end(),
+                  [&res, &pos](const Hand& hand)
     {
-        res += hands.at(i).bid * (i + 1);
-    }
+        res += hand.bid * pos++;
+    });
 
     cout << "part 2 (" << file_path << ") " << res << endl;
 }
