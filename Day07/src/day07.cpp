@@ -304,32 +304,59 @@ void part1()
     cout << "part 1 (" << file_path << ") " << res << endl;
 }
 
-vec<char> replace_J_in_hand(const vec<char>& cards)
+vec<char> replace_J_in_hand(const vec<char>& hand)
 {
     auto find_replacement_card = [](auto freq_map, u32 num) -> char
     {
-        char replacement_char {};
+        char replacement_card {};
 
         for (const auto& [key, value] : freq_map)
         {
             if (value == num)
             {
-                replacement_char = key;
+                replacement_card = key;
                 break;
             }
         }
 
-        return replacement_char;
+        return replacement_card;
     };
 
-    auto mod_cards = vec<char> {cards};
+    auto mod_hand = vec<char> {hand};
 
-    auto num_of_J = std::count(cards.begin(), cards.end(), 'J');
+    auto num_of_J = std::count(hand.begin(), hand.end(), 'J');
 
-    auto freq_map = fill_freq_map(cards);
+    auto freq_map = fill_freq_map(hand);
     freq_map.erase('J');
+
     auto occurr_map = fill_occurr_map(freq_map);
+
     char replacement_card {};
+
+    if (num_of_J == 5)
+    {
+        replacement_card = 'A';
+    }
+    else if (num_of_J == 0)
+    {
+        return mod_hand;
+    }
+    else
+    {
+        for (u32 i = 5 - num_of_J;
+             i >= 1;
+             --i)
+        {
+            if (occurr_map.at(i) != 0)
+            {
+                replacement_card = find_replacement_card(freq_map, i);
+                break;
+            }
+        }
+    }
+
+
+#if 0
 
     if (num_of_J == 5)
     {
@@ -421,71 +448,35 @@ vec<char> replace_J_in_hand(const vec<char>& cards)
     }
     else if (num_of_J == 0)
     {
-        return mod_cards;
+        return mod_hand;
     }
     else
     {
         throw "BRUUH";
     }
 
+#endif // 0
 
-    std::replace_if(mod_cards.begin(), mod_cards.end(),
+
+    std::replace_if(mod_hand.begin(), mod_hand.end(),
                     [](char ch) { return ch == 'J'; },
                     replacement_card);
 
-    /*auto it = std::find(mod_cards.begin(),
-                        mod_cards.end(),
-                        'J');
-
-    if (it == mod_cards.end())
-        throw "Something went wrong, sorry bro...";
-
-    auto index = std::distance(mod_cards.begin(), it);
-    mod_cards.at(index) = replacement_card;*/
-
-
-#if 0
-    for (u32 j = 0;
-         j < num_of_J;
-         ++j)
-    {
-        // find J pos
-        auto it = std::find(hand.begin(), hand.end(), 'J');
-        auto j_pos = std::distance(hand.begin(), it);
-
-        u32 highest_score = 0;
-        char best_card = '0';
-
-        for (char c : "AKQT98765432")
-        {
-            // replace J with new card
-            mod_hand.at(j_pos) = c;
-            auto score = calculate_hand_score(mod_hand);
-
-            if (score > highest_score)
-            {
-                highest_score = score;
-                best_card = c;
-}
-}
-    }
-
-#endif // 0
-
     // sanity check
     {
-        auto score_before = calculate_hand_score(cards);
-        auto score_after = calculate_hand_score(mod_cards);
+        auto score_before = calculate_hand_score(hand);
+        auto score_after = calculate_hand_score(mod_hand);
         if (score_before >= score_after and
             num_of_J != 5)
         {
             throw std::format("Your algorithm suuuuuuucks: before <{}:{}> after <{}:{}>",
-                              str {cards.begin(), cards.end()}, score_before,
-                              str {mod_cards.begin(), mod_cards.end()}, score_after);
+                              str {hand.begin(), hand.end()}, score_before,
+                              str {mod_hand.begin(), mod_hand.end()}, score_after);
         }
     }
 
-    return mod_cards;
+    return mod_hand;
+
 }
 
 void part2()
