@@ -146,17 +146,9 @@ static inline bool is_between(T num, T min, T max)
 // ==============================================
 // ==============================================
 
-static map<char, u32> scoring_map {
-            {'A',13},{'K',12},{'Q',11},
-            {'J',10},{'T',9},{'9',8},
-            {'8',7},{'7',6},{'6',5},
-            {'5',4},{'4',3},{'3',2},
-            {'2',1}
-};
-
 struct Hand
 {
-    vec<char> cards;
+    vec<char> origianl_cards;
     u32 bid {};
     u32 score {};
 };
@@ -265,14 +257,22 @@ void part1()
     std::sort(hands.begin(), hands.end(),
               [](const Hand& lhs, const Hand& rhs)
     {
+        static map<char, u32> scoring_map {
+            {'A',13},{'K',12},{'Q',11},
+            {'J',10},{'T',9},{'9',8},
+            {'8',7},{'7',6},{'6',5},
+            {'5',4},{'4',3},{'3',2},
+            {'2',1}
+        };
+
         if (lhs.score == rhs.score)
         {
             for (u32 i = 0;
-                 i < lhs.cards.size();
+                 i < lhs.origianl_cards.size();
                  ++i)
             {
-                auto lhs_score = scoring_map.at(lhs.cards.at(i));
-                auto rhs_score = scoring_map.at(rhs.cards.at(i));
+                auto lhs_score = scoring_map.at(lhs.origianl_cards.at(i));
+                auto rhs_score = scoring_map.at(rhs.origianl_cards.at(i));
 
                 if (lhs_score != rhs_score)
                     return lhs_score < rhs_score;
@@ -292,7 +292,7 @@ void part1()
          i < hands.size();
          ++i)
     {
-        res += hands.at(i).bid * (i+1);
+        res += hands.at(i).bid * (i + 1);
     }
 
     cout << "part 1 (" << file_path << ") " << res << endl;
