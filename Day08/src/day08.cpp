@@ -2,8 +2,8 @@
 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-#include <assert.h>
 #include <array>
+#include <assert.h>
 #include <cstdint>
 #include <exception>
 #include <filesystem>
@@ -13,12 +13,13 @@
 #include <iterator>
 #include <limits>
 #include <map>
+#include <numeric>
 #include <queue>
 #include <ranges>
 #include <regex>
 #include <set>
-#include <string>
 #include <string_view>
+#include <string>
 #include <vector>
 
 using u8 = uint8_t;
@@ -160,7 +161,7 @@ struct Map
 
 void part1()
 {
-    auto file_path = "res\\test.txt";
+    auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
@@ -201,7 +202,7 @@ void part1()
         index = index % instructions_size;
         char dir = map.instructions.at(index);
 
-        cout << steps << ". " << current_node << " (" << dir << ") ";
+        //cout << steps << ". " << current_node << " (" << dir << ") ";
 
         if (dir == 'L')
         {
@@ -215,7 +216,7 @@ void part1()
         {
             throw "no bueno!";
         }
-        cout << current_node << endl;
+        //cout << current_node << endl;
 
         ++index;
         ++steps;
@@ -259,57 +260,58 @@ void part2()
     }
 
 
-    auto filtered_keys =
+    constexpr auto ends_with_a = [](str_cref key)
+    {
+        return key.ends_with("A");
+    };
+
+    auto start_nodes =
         map.nodes |
         std::views::keys |
-        std::views::filter([](str_cref key) {
-        return key.ends_with("A");
-    });
+        std::views::filter(ends_with_a) |
+        std::ranges::to<std::vector>();
 
-    auto current_nodes = vec<str> {filtered_keys.begin(), filtered_keys.end()};
+    auto inst_size = map.instructions.size();
 
-    u64 index = 0;
-    u64 steps = 0;
-    auto instructions_size = map.instructions.size();
+    vec<u64> cycles;
 
-    bool done = std::all_of(current_nodes.begin(),
-                            current_nodes.end(),
-                            [](str_cref str)
+    for (auto curr_node : start_nodes)
     {
-        return str.ends_with("Z");
-    });
+        u64 index = 0;
+        u64 cycle_len = 0;
 
-
-    while (not done)
-    {
-        index = index % instructions_size;
-        char dir = map.instructions.at(index);
-
-        std::transform(current_nodes.begin(), current_nodes.end(),
-                       current_nodes.begin(),
-                       [&map, dir](str_cref node)
+        while (not curr_node.ends_with("Z"))
         {
+            index = index % inst_size;
+            char dir = map.instructions.at(index);
+
             if (dir == 'L')
-                return map.nodes.at(node).left;
+            {
+                curr_node = map.nodes.at(curr_node).left;
+            }
             else if (dir == 'R')
-                return map.nodes.at(node).right;
+            {
+                curr_node = map.nodes.at(curr_node).right;
+            }
             else
+            {
                 throw "no bueno!";
-        });
+            }
 
-        ++index;
-        ++steps;
+            ++index;
+            ++cycle_len;
+        }
 
-        done = std::all_of(current_nodes.begin(),
-                           current_nodes.end(),
-                           [](str_cref str)
-        {
-            return str.ends_with("Z");
-        });
+        cycles.push_back(cycle_len);
     }
 
+    u64 res = std::accumulate(cycles.begin(), cycles.end(), 1ULL,
+                              [](u64 acc, u64 value)
+    {
+        u64 res = std::lcm(acc, value);
+        return res;
+    });
 
-    u64 res = steps;
     cout << "part 2 (" << file_path << ") " << res << endl;
 }
 
@@ -318,7 +320,7 @@ int main()
     try
     {
         part1();
-        //part2();
+        part2();
     }
     catch (const char* e)
     {
