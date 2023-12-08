@@ -160,8 +160,10 @@ struct Map
 
 void part1()
 {
-    auto file_path = "res\\input.txt";
+    auto file_path = "res\\test.txt";
     auto ifs = std::ifstream(file_path);
+    if (not ifs.is_open())
+        throw std::format("Cannot open file <{}>", file_path);
 
     Map map;
 
@@ -199,6 +201,8 @@ void part1()
         index = index % instructions_size;
         char dir = map.instructions.at(index);
 
+        cout << steps << ". " << current_node << " (" << dir << ") ";
+
         if (dir == 'L')
         {
             current_node = map.nodes.at(current_node).left;
@@ -211,11 +215,11 @@ void part1()
         {
             throw "no bueno!";
         }
+        cout << current_node << endl;
 
         ++index;
         ++steps;
     }
-
 
     u64 res = steps;
     cout << "part 1 (" << file_path << ") " << res << endl;
@@ -225,25 +229,96 @@ void part2()
 {
     auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
+    if (not ifs.is_open())
+        throw std::format("Cannot open file <{}>", file_path);
 
-    for (str line;
+    Map map;
+
+    // first line is directions
+    str line;
+    std::getline(ifs, line);
+
+    map.instructions = line;
+
+    const auto pattern = std::regex(R"((\w{3})\s+=\s+\((\w{3}),\s+(\w{3})\))");
+
+    for (;
          std::getline(ifs, line);
          )
     {
+        auto token = line;
 
+        for (std::smatch match;
+             std::regex_search(token, match, pattern);
+             )
+        {
+            map.nodes[match[1].str()] = Dir {match[2].str(), match[3].str()};
+
+            token = match.suffix();
+        }
     }
 
-    u64 res = 0;
+
+    auto filtered_keys =
+        map.nodes |
+        std::views::keys |
+        std::views::filter([](str_cref key) {
+        return key.ends_with("A");
+    });
+
+    auto current_nodes = vec<str> {filtered_keys.begin(), filtered_keys.end()};
+
+    u64 index = 0;
+    u64 steps = 0;
+    auto instructions_size = map.instructions.size();
+
+    bool done = std::all_of(current_nodes.begin(),
+                            current_nodes.end(),
+                            [](str_cref str)
+    {
+        return str.ends_with("Z");
+    });
+
+
+    while (not done)
+    {
+        index = index % instructions_size;
+        char dir = map.instructions.at(index);
+
+        std::transform(current_nodes.begin(), current_nodes.end(),
+                       current_nodes.begin(),
+                       [&map, dir](str_cref node)
+        {
+            if (dir == 'L')
+                return map.nodes.at(node).left;
+            else if (dir == 'R')
+                return map.nodes.at(node).right;
+            else
+                throw "no bueno!";
+        });
+
+        ++index;
+        ++steps;
+
+        done = std::all_of(current_nodes.begin(),
+                           current_nodes.end(),
+                           [](str_cref str)
+        {
+            return str.ends_with("Z");
+        });
+    }
+
+
+    u64 res = steps;
     cout << "part 2 (" << file_path << ") " << res << endl;
 }
-
 
 int main()
 {
     try
     {
         part1();
-        part2();
+        //part2();
     }
     catch (const char* e)
     {
