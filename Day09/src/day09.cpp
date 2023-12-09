@@ -149,7 +149,7 @@ static inline bool is_between(T num, T min, T max)
 // ==============================================
 
 template<typename T>
-vec<T> solve(vec<T>& nums)
+vec<T> solve(vec<T>& nums, bool part_one)
 {
     vec<T> next_nums;
 
@@ -158,7 +158,12 @@ vec<T> solve(vec<T>& nums)
     if (all_zeros)
     {
         next_nums = vec<T> {nums};
-        next_nums.push_back(0);
+        
+        if (part_one)
+            next_nums.push_back(0);
+        else
+            next_nums.insert(next_nums.begin(), 0);
+
         return next_nums;
     }
     else
@@ -172,12 +177,22 @@ vec<T> solve(vec<T>& nums)
             next_nums.push_back(b - a);
         }
 
-        next_nums = solve(next_nums);
+        next_nums = solve(next_nums, part_one);
 
-        auto a = nums.back();
-        auto b = next_nums.back();
-        auto c = a + b;
-        nums.push_back(c);
+        if (part_one)
+        {
+            auto a = nums.back();
+            auto b = next_nums.back();
+            auto c = a + b;
+            nums.push_back(c);
+        }
+        else
+        {
+            auto a = nums.front();
+            auto b = next_nums.front();
+            auto c = a - b;
+            nums.insert(nums.begin(), c);
+        }
 
         return nums;
     }
@@ -210,7 +225,7 @@ void part1()
             token = match.suffix();
         }
 
-        nums = solve(nums);
+        nums = solve(nums, true);
         sum += nums.back();
 
         int s = 0;
@@ -222,7 +237,39 @@ void part1()
 
 void part2()
 {
+    auto file_path = "res\\input.txt";
+    auto ifs = std::ifstream(file_path);
+    if (not ifs.is_open())
+        throw std::format("Cannot open file <{}>", file_path);
 
+    const auto pattern = std::regex(R"((-?\d+))");
+
+    i32 sum = 0;
+
+    str line;
+    for (;
+         std::getline(ifs, line);
+         )
+    {
+        auto token = line;
+        vec<i32> nums;
+
+        for (std::smatch match;
+             std::regex_search(token, match, pattern);
+             )
+        {
+            nums.push_back(std::stoi(match[1].str()));
+            token = match.suffix();
+        }
+
+        nums = solve(nums, false);
+        sum += nums.front();
+
+        int s = 0;
+    }
+
+    auto res = sum;
+    cout << "part 2 (" << file_path << ") " << res << endl;
 }
 
 int main()
