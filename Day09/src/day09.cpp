@@ -149,25 +149,18 @@ static inline bool is_between(T num, T min, T max)
 // ==============================================
 
 template<typename T>
-vec<T> solve(vec<T>& nums, bool part_one)
+T solve(vec<T>& nums, bool part_one)
 {
-    vec<T> next_nums;
-
     bool all_zeros = ranges::all_of(nums, [](const T& val) { return val == 0; });
 
     if (all_zeros)
     {
-        next_nums = vec<T> {nums};
-        
-        if (part_one)
-            next_nums.push_back(0);
-        else
-            next_nums.insert(next_nums.begin(), 0);
-
-        return next_nums;
+        return 0;
     }
     else
     {
+        vec<T> next_nums;
+
         for (u64 i = 0;
              i < nums.size() - 1;
              ++i)
@@ -177,24 +170,20 @@ vec<T> solve(vec<T>& nums, bool part_one)
             next_nums.push_back(b - a);
         }
 
-        next_nums = solve(next_nums, part_one);
+        auto next_num = solve(next_nums, part_one);
 
         if (part_one)
         {
             auto a = nums.back();
-            auto b = next_nums.back();
-            auto c = a + b;
-            nums.push_back(c);
+            auto b = next_num;
+            return a + b;
         }
         else
         {
             auto a = nums.front();
-            auto b = next_nums.front();
-            auto c = a - b;
-            nums.insert(nums.begin(), c);
+            auto b = next_num;
+            return a - b;
         }
-
-        return nums;
     }
 }
 
@@ -225,10 +214,7 @@ void part1()
             token = match.suffix();
         }
 
-        nums = solve(nums, true);
-        sum += nums.back();
-
-        int s = 0;
+        sum += solve(nums, true);
     }
 
     auto res = sum;
@@ -262,10 +248,7 @@ void part2()
             token = match.suffix();
         }
 
-        nums = solve(nums, false);
-        sum += nums.front();
-
-        int s = 0;
+        sum += solve(nums, false);
     }
 
     auto res = sum;
