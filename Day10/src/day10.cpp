@@ -232,7 +232,7 @@ bool operator!=(const Tile& t, char ch)
 }
 
 
-bool can_move(const Maze& maze, const Tile& tile, Direction dir)
+bool can_move(const Maze& maze, const Tile& tile, Direction dir, bool start_tile = false)
 {
     const Tile* next {nullptr};
 
@@ -281,10 +281,17 @@ bool can_move(const Maze& maze, const Tile& tile, Direction dir)
 
     if (next)
     {
-        res =
-            ((next->conn1 == opposite(dir)) or (next->conn2 == opposite(dir)))
-            and
-            ((tile.conn1 == dir) or (tile.conn2 == dir));
+        if (start_tile)
+        {
+            res = ((next->conn1 == opposite(dir)) or (next->conn2 == opposite(dir)));
+        }
+        else
+        {
+            res =
+                ((next->conn1 == opposite(dir)) or (next->conn2 == opposite(dir)))
+                and
+                ((tile.conn1 == dir) or (tile.conn2 == dir));
+        }
     }
 
     return res;
@@ -438,7 +445,7 @@ void part1()
     // fix start tile
     for (Direction dir : {Direction::up, Direction::down, Direction::left, Direction::right})
     {
-        if (can_move(maze, start, dir))
+        if (can_move(maze, start, dir, true))
         {
             if (start.conn1 == Direction::none)
                 start.conn1 = dir;
@@ -448,9 +455,6 @@ void part1()
                 throw "??????";
         }
     }
-    // FIXME:
-    start.conn1 = Direction::left;
-    start.conn2 = Direction::down;
 
     if (start.conn1 == Direction::none
         or
@@ -467,22 +471,22 @@ void part1()
     do
     {
         i32 movs = 0;
-        cout << "tile " << curr_tile.name << " [";
+        //cout << "tile " << curr_tile.name << " [";
         for (Direction dir : {Direction::up, Direction::down, Direction::left, Direction::right})
         {
             if (dir != from and
                 can_move(maze, curr_tile, dir))
             {
-                cout << dir << ", ";
+                //cout << dir << ", ";
                 ++movs;
             }
         }
-        cout << "] (" << movs << ")" << endl;
+        //cout << "] (" << movs << ")" << endl;
 
-        if (movs > 1)
+        /*if (movs > 1)
         {
             int s = 0;
-        }
+        }*/
 
         bool moved = false;
 
@@ -499,14 +503,14 @@ void part1()
             }
         }
 
-        if (not moved)
-        {
-            // stuck? 
-            int s = 0;
-            throw "i'm stuck!";
-        }
+        //if (not moved)
+        //{
+        //    // stuck? 
+        //    int s = 0;
+        //    throw "i'm stuck!";
+        //}
 
-    } while (curr_tile != 'S');
+    } while (curr_tile.name != 'S');
 
     if (steps % 2 != 0)
         throw std::format("steps is odd! <{}>", steps);
