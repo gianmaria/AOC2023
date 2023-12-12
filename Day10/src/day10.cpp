@@ -110,14 +110,14 @@ str trim(str_cref s)
 
 vector<str> split_string(str_cref line, char sep)
 {
-    vector<str> res {};
-    std::istringstream iss {line};
+    vector<str> res{};
+    std::istringstream iss{ line };
 
-    str token {};
+    str token{};
 
     while (std::getline(iss, token, sep))
     {
-        res.push_back(std::move(trim(token)));
+        res.push_back(trim(token));
     }
 
     return res;
@@ -148,13 +148,15 @@ static inline bool is_between(T num, T min, T max)
 // ==============================================
 // ==============================================
 
-enum class Direction {
+enum class Direction
+{
     none, up, down, left, right
 };
 
 std::ostream& operator<<(std::ostream& os, Direction value)
 {
-    switch (value) {
+    switch (value)
+    {
         case Direction::up:
         {
             os << "up";
@@ -183,7 +185,6 @@ std::ostream& operator<<(std::ostream& os, Direction value)
 
     return os;
 }
-
 
 Direction opposite(Direction dir)
 {
@@ -232,9 +233,10 @@ bool operator!=(const Tile& t, char ch)
 }
 
 
-bool can_move(const Maze& maze, const Tile& tile, Direction dir, bool start_tile = false)
+const Tile* can_move(const Maze& maze, const Tile& tile,
+                     Direction dir, bool start_tile = false)
 {
-    const Tile* next {nullptr};
+    const Tile* next_tile{ nullptr };
 
     switch (dir)
     {
@@ -242,7 +244,7 @@ bool can_move(const Maze& maze, const Tile& tile, Direction dir, bool start_tile
         {
             if (tile.r - 1 >= 0)
             {
-                next = &maze.at(tile.r - 1).at(tile.c);
+                next_tile = &maze.at(tile.r - 1).at(tile.c);
             }
         } break;
 
@@ -250,7 +252,7 @@ bool can_move(const Maze& maze, const Tile& tile, Direction dir, bool start_tile
         {
             if (tile.r + 1 < maze.size()) // assumed maze is always sqare
             {
-                next = &maze.at(tile.r + 1).at(tile.c);
+                next_tile = &maze.at(tile.r + 1).at(tile.c);
             }
         } break;
 
@@ -258,7 +260,7 @@ bool can_move(const Maze& maze, const Tile& tile, Direction dir, bool start_tile
         {
             if (tile.c - 1 >= 0)
             {
-                next = &maze.at(tile.r).at(tile.c - 1);
+                next_tile = &maze.at(tile.r).at(tile.c - 1);
             }
         } break;
 
@@ -266,83 +268,43 @@ bool can_move(const Maze& maze, const Tile& tile, Direction dir, bool start_tile
         {
             if (tile.c + 1 < maze.size()) // assumed maze is always sqare
             {
-                next = &maze.at(tile.r).at(tile.c + 1);
+                next_tile = &(maze.at(tile.r).at(tile.c + 1));
             }
         } break;
 
         case Direction::none:
         {
-            next = &maze.at(tile.r).at(tile.c);
+            next_tile = &maze.at(tile.r).at(tile.c);
         } break;
 
     }
 
-    bool res = false;
-
-    if (next)
+    if (next_tile)
     {
+        bool res = false;
+
         if (start_tile)
         {
-            res = ((next->conn1 == opposite(dir)) or (next->conn2 == opposite(dir)));
+            res = 
+                next_tile->conn1 == opposite(dir) 
+                or 
+                next_tile->conn2 == opposite(dir);
         }
         else
         {
             res =
-                ((next->conn1 == opposite(dir)) or (next->conn2 == opposite(dir)))
+                (next_tile->conn1 == opposite(dir) or next_tile->conn2 == opposite(dir))
                 and
-                ((tile.conn1 == dir) or (tile.conn2 == dir));
+                (tile.conn1 == dir or tile.conn2 == dir);
+        }
+
+        if (not res)
+        {
+            next_tile = nullptr;
         }
     }
-
-    return res;
-}
-
-const Tile& move(const Maze& maze, const Tile& tile, Direction dir)
-{
-    const Tile* next {nullptr};
-
-    switch (dir)
-    {
-        case Direction::up:
-        {
-            if (tile.r - 1 >= 0)
-            {
-                next = &maze.at(tile.r - 1).at(tile.c);
-            }
-        } break;
-
-        case Direction::down:
-        {
-            if (tile.r + 1 < maze.size()) // assumed maze is always sqare
-            {
-                next = &maze.at(tile.r + 1).at(tile.c);
-            }
-        } break;
-
-        case Direction::left:
-        {
-            if (tile.c - 1 >= 0)
-            {
-                next = &maze.at(tile.r).at(tile.c - 1);
-            }
-        } break;
-
-        case Direction::right:
-        {
-            if (tile.c + 1 < maze.size()) // assumed maze is always sqare
-            {
-                next = &maze.at(tile.r).at(tile.c + 1);
-            }
-        } break;
-
-        case Direction::none:
-        {
-            next = &maze.at(tile.r).at(tile.c);
-        } break;
-
-    }
-
-    return *next;
+    
+    return next_tile;
 }
 
 void part1()
@@ -440,38 +402,31 @@ void part1()
         maze.push_back(std::move(row));
     }
 
-    Tile& start = maze.at(tile_start_r).at(tile_start_c);
+    Tile* start = &maze.at(tile_start_r).at(tile_start_c);
 
-    // fix start tile
+    // setup connection for start tile
     for (Direction dir : {Direction::up, Direction::down, Direction::left, Direction::right})
     {
-        if (can_move(maze, start, dir, true))
+        if (can_move(maze, *start, dir, true))
         {
-            if (start.conn1 == Direction::none)
-                start.conn1 = dir;
-            else if (start.conn2 == Direction::none)
-                start.conn2 = dir;
+            if (start->conn1 == Direction::none)
+                start->conn1 = dir;
+            else if (start->conn2 == Direction::none)
+                start->conn2 = dir;
             else
                 throw "??????";
         }
     }
 
-    if (start.conn1 == Direction::none
-        or
-        start.conn2 == Direction::none)
-    {
-        throw "start tile is NOT fixed!!";
-    }
-
-    Tile curr_tile = start;
-
+    const Tile* curr_tile = start;
     Direction from = Direction::none;
     u32 steps = 0;
 
     do
     {
+#ifdef SANITY_CHECK
         i32 movs = 0;
-        //cout << "tile " << curr_tile.name << " [";
+        cout << "tile " << curr_tile.name << " [";
         for (Direction dir : {Direction::up, Direction::down, Direction::left, Direction::right})
         {
             if (dir != from and
@@ -481,36 +436,45 @@ void part1()
                 ++movs;
             }
         }
-        //cout << "] (" << movs << ")" << endl;
+        cout << "] (" << movs << ")" << endl;
 
-        /*if (movs > 1)
+        if (movs > 1)
         {
             int s = 0;
-        }*/
+        }
 
         bool moved = false;
+#endif // SANITY_CHECK
 
         for (Direction dir : {Direction::up, Direction::down, Direction::left, Direction::right})
         {
-            if (dir != from and
-                can_move(maze, curr_tile, dir))
+            if (dir != from)
             {
-                curr_tile = move(maze, curr_tile, dir);
-                from = opposite(dir);
-                ++steps;
-                moved = true;
-                break;
+                if (auto* new_tile = can_move(maze, *curr_tile, dir);
+                    new_tile != nullptr)
+                {
+                    curr_tile = new_tile;
+                    from = opposite(dir); // keep track of where you come from
+                    ++steps;
+#ifdef SANITY_CHECK
+                    moved = true;
+#endif // SANITY_CHECK
+                    break;
+                }
             }
         }
 
-        //if (not moved)
-        //{
-        //    // stuck? 
-        //    int s = 0;
-        //    throw "i'm stuck!";
-        //}
+#ifdef SANITY_CHECK
+        if (not moved)
+        {
+            // stuck? 
+            int s = 0;
+            throw "i'm stuck!";
+        }
+#endif // SANITY_CHECK
 
-    } while (curr_tile.name != 'S');
+
+    } while (curr_tile->name != 'S');
 
     if (steps % 2 != 0)
         throw std::format("steps is odd! <{}>", steps);
