@@ -110,10 +110,10 @@ str trim(str_cref s)
 
 vector<str> split_string(str_cref line, char sep)
 {
-    vector<str> res{};
-    std::istringstream iss{ line };
+    vector<str> res {};
+    std::istringstream iss {line};
 
-    str token{};
+    str token {};
 
     while (std::getline(iss, token, sep))
     {
@@ -236,7 +236,7 @@ bool operator!=(const Tile& t, char ch)
 const Tile* can_move(const Maze& maze, const Tile& tile,
                      Direction dir, bool start_tile = false)
 {
-    const Tile* next_tile{ nullptr };
+    const Tile* next_tile {nullptr};
 
     switch (dir)
     {
@@ -285,9 +285,9 @@ const Tile* can_move(const Maze& maze, const Tile& tile,
 
         if (start_tile)
         {
-            res = 
-                next_tile->conn1 == opposite(dir) 
-                or 
+            res =
+                next_tile->conn1 == opposite(dir)
+                or
                 next_tile->conn2 == opposite(dir);
         }
         else
@@ -303,7 +303,7 @@ const Tile* can_move(const Maze& maze, const Tile& tile,
             next_tile = nullptr;
         }
     }
-    
+
     return next_tile;
 }
 
