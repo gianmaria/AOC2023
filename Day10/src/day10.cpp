@@ -661,7 +661,7 @@ void part2()
     } while (curr_tile->name != 'S');
 
     // calculate Point in polygon
-    u32 inside {0};    
+    u32 inside {0};
     for (auto [r, row&] : maze | std::views::enumerate)
     {
         for (auto [c, tile&] : row | std::views::enumerate)
@@ -671,7 +671,7 @@ void part2()
             // outside the loop
             if (tile.part_of_loop)
                 continue;
-            
+
             // start scanning from left to right
             u32 intersection {0};
             for (u64 cc = c;
@@ -681,7 +681,8 @@ void part2()
                 const auto* tile = &maze.at(r).at(cc);
 
                 if (tile->part_of_loop and
-                    str("|LJ").contains(tile->name)) // why 'L' and 'J'? i have no idea
+                    (tile->conn1 == Direction::up or
+                    tile->conn2 == Direction::up))
                 {
                     ++intersection;
                 }
