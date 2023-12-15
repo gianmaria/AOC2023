@@ -14,6 +14,7 @@
 #include <iterator>
 #include <limits>
 #include <map>
+#include <unordered_map>
 #include <numeric>
 #include <queue>
 #include <ranges>
@@ -158,6 +159,21 @@ struct Point
     i64 c {};
 };
 
+namespace std
+{
+    template<> struct hash<Point>
+    {
+        using argument_type = Point;
+        using result_type = std::size_t;
+        result_type operator()(argument_type const& a) const
+        {
+            result_type const h1 ( std::hash<i64>()(a.r) );
+            result_type const h2 ( std::hash<i64>()(a.c) );
+            return h1 ^ (h2 << 1);
+        }
+    };
+}
+
 bool operator<(const Point& a, const Point& b)
 {
     if (a.r == b.r)
@@ -213,10 +229,12 @@ bool valid(const Image& image, const Point& p)
     return res;
 }
 
-map<Point, float> dijkstra(const Image& image, const Point& start)
+std::unordered_map<Point, float>
+dijkstra(const Image& image,
+         const Point& start, const Point& target)
 {
-    map<Point, float> dist;
-    map<Point, Point> prev;
+    std::unordered_map<Point, float> dist;
+    std::unordered_map<Point, Point> prev;
     vec<Point> Q;
     std::set<Point> S;
     Point Undef {-1,-1};
@@ -244,6 +262,9 @@ map<Point, float> dijkstra(const Image& image, const Point& start)
         });
 
         Point u = *it;
+
+        if (u == target)
+            break;
 
         std::swap(Q[std::distance(Q.begin(), it)], Q[Q.size() - 1]);
         Q.erase(Q.end() - 1);
@@ -398,40 +419,42 @@ float solve(const Image& image)
 
     map<pair<u16, u16>, float> res;
 
-    for (const Point& galaxy : galaxies)
+    for (const Point& galaxy_a : galaxies)
     {
-        auto distances = dijkstra(image, galaxy);
-
-        for (const Point& other_galaxy : galaxies)
+        for (const Point& galaxy_b : galaxies)
         {
-            if (other_galaxy == galaxy)
+            if (galaxy_b == galaxy_a)
                 continue;
 
-            float dist = distances[other_galaxy];
-            dist -= (image[other_galaxy.r][other_galaxy.c] - 1.0f);
-
-            auto from = image[galaxy.r][galaxy.c];
-            auto to = image[other_galaxy.r][other_galaxy.c];
-
-            /*cout << std::format("from galaxy {} ({},{}) to {} ({},{}) length {}",
-                                from, galaxy.r + 1, galaxy.c + 1,
-                                to, other_galaxy.r + 1, other_galaxy.c + 1,
-                                dist)
-                << endl;*/
+            auto from = image[galaxy_a.r][galaxy_a.c];
+            auto to = image[galaxy_b.r][galaxy_b.c];
 
             auto from_to = std::make_pair(from, to);
             auto to_from = std::make_pair(to, from);
 
             if (
-                (res.find(from_to) == res.end()) 
-                and
-                (res.find(to_from) == res.end())
+                (res.find(from_to) != res.end())
+                or
+                (res.find(to_from) != res.end())
                 )
             {
-                res.insert({from_to, dist});
+                continue;
             }
+
+            auto distances = dijkstra(image, galaxy_a, galaxy_b);
+
+            float dist = distances[galaxy_b];
+            dist -= (image[galaxy_b.r][galaxy_b.c] - 1.0f);
+
+            cout << std::format("from galaxy {} ({},{}) to {} ({},{}) length {}",
+                                from, galaxy_a.r + 1, galaxy_a.c + 1,
+                                to, galaxy_b.r + 1, galaxy_b.c + 1,
+                                dist)
+                << endl;        
+
+            res.insert({from_to, dist});
         }
-        //cout << endl;
+        cout << endl;
     }
 
 #if 0
@@ -499,9 +522,9 @@ float solve(const Image& image)
 #endif // 0
 
     return std::accumulate(res.begin(), res.end(), 0.0f,
-        [](float acc, const auto& pair) {
-            return acc + pair.second;
-        });
+                           [](float acc, const auto& pair) {
+        return acc + pair.second;
+    });
 }
 
 void part1()
