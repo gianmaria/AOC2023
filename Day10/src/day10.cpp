@@ -281,32 +281,21 @@ Tile* can_move(Maze& maze, const Tile& tile,
 
     }
 
-    if (next_tile)
+    if (next_tile == nullptr)
+        return next_tile;
+
+    bool res =
+        next_tile->conn1 == opposite(dir)
+        or
+        next_tile->conn2 == opposite(dir);;
+
+    if (!start_tile)
     {
-        bool res = false;
-
-        if (start_tile)
-        {
-            res =
-                next_tile->conn1 == opposite(dir)
-                or
-                next_tile->conn2 == opposite(dir);
-        }
-        else
-        {
-            res =
-                (next_tile->conn1 == opposite(dir) or next_tile->conn2 == opposite(dir))
-                and
-                (tile.conn1 == dir or tile.conn2 == dir);
-        }
-
-        if (not res)
-        {
-            next_tile = nullptr;
-        }
+        res = res and
+            (tile.conn1 == dir or tile.conn2 == dir);
     }
 
-    return next_tile;
+    return res ? next_tile : nullptr;
 }
 
 void part1()
