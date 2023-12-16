@@ -159,55 +159,36 @@ struct Point
     i64 c {};
 };
 
-bool operator<(const Point& a, const Point& b)
-{
-    if (a.r == b.r)
-        return a.c < b.c;
-    else
-        return a.r < b.r;
-}
-
-bool operator==(const Point& a, const Point& b)
-{
-    return a.r == b.r and a.c == b.c;
-}
-
-bool is_row_empty(const vec<vec<char>>& map, u64 r)
-{
-    bool empty = true;
-
-    for (u64 c = 0;
-         c < map.at(r).size();
-         ++c)
-    {
-        if (map.at(r).at(c) == '#')
-        {
-            empty = false;
-            break;
-        }
-    }
-    return empty;
-}
-
-bool is_col_empty(const vec<vec<char>>& map, u64 c)
-{
-    bool empty = true;
-
-    for (u64 r = 0;
-         r < map.size();
-         ++r)
-    {
-        if (map.at(r).at(c) == '#')
-        {
-            empty = false;
-            break;
-        }
-    }
-    return empty;
-}
-
 u64 solve(const vec<vec<char>>& map, u64 offset)
 {
+    vec<bool> empty_rows;
+    for (const auto& row : map)
+    {
+        bool empty = ranges::all_of(row.cbegin(), row.cend(), [](auto& ch) { return ch == '.'; });
+        empty_rows.push_back(empty);
+    }
+
+    vec<bool> empty_cols;
+    for (u64 c = 0;
+         c < map.at(0).size();
+         ++c)
+    {
+        bool empty = true;
+
+        for (u64 r = 0;
+             r < map.size();
+             ++r)
+        {
+            if (map.at(r).at(c) == '#')
+            {
+                empty = false;
+                break;
+            }
+        }
+        
+        empty_cols.push_back(empty);
+    }
+
     vec<pair<u64, u64>> galaxies;
 
     // collect all the galaxies
@@ -241,7 +222,7 @@ u64 solve(const vec<vec<char>>& map, u64 offset)
             {
                 ++acc;
 
-                if (is_row_empty(map, r))
+                if (empty_rows.at(r))
                     acc += offset;
             }
 
@@ -251,7 +232,7 @@ u64 solve(const vec<vec<char>>& map, u64 offset)
             {
                 ++acc;
 
-                if (is_col_empty(map, c))
+                if (empty_cols.at(c))
                     acc += offset;
             }
         }
