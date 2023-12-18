@@ -265,7 +265,7 @@ void draw(const Matrix<T>& map, const Tile& tile)
 {
     for (auto itr = map.begin();
          itr != map.end();
-    ++itr)
+         ++itr)
     {
         u64 r = std::distance(map.begin(), itr);
 
@@ -403,32 +403,20 @@ u64 walk(const Matrix<T>& map, Tile start)
         return res;
     };
 
-    std::queue<Tile> Q;
-    Q.push(start);
+    std::queue<Tile> to_visit;
+    to_visit.push(start);
 
     std::set<Tile> visited;
 
-    while (not Q.empty())
+    while (not to_visit.empty())
     {
-        Tile tile = Q.front();
-        Q.pop();
+        Tile tile = to_visit.front();
+        to_visit.pop();
 
-        if (visited.insert(tile).second == false)
-        {
-            int s = 0;
-            continue;
-        }
-
-        std::set<Tile> local_visited;
         while (in_bounds(map, tile))
         {
-            //draw(map, tile);
-
-            if (local_visited.insert(tile).second == false) // am i in a loop?
-            {
-                int s = 0;
+            if (visited.contains(tile))
                 break;
-            }
 
             visited.insert(tile);
 
@@ -446,11 +434,8 @@ u64 walk(const Matrix<T>& map, Tile start)
             {
                 // split
                 Tile opposite {tile.r + 1, tile.c, Direction::down};
-                if (visited.count(opposite) == 0)
-                {
-                    Q.push(opposite);
-                }
-
+                to_visit.push(opposite);
+                
                 tile.r -= 1;
                 tile.dir = Direction::up;
             }
@@ -460,11 +445,8 @@ u64 walk(const Matrix<T>& map, Tile start)
             {
                 // split
                 Tile opposite {tile.r, tile.c - 1, Direction::left};
-                if (visited.count(opposite) == 0)
-                {
-                    Q.push(opposite);
-                }
-
+                to_visit.push(opposite);
+                
                 tile.c += 1;
                 tile.dir = Direction::right;
             }
@@ -477,31 +459,8 @@ u64 walk(const Matrix<T>& map, Tile start)
         //cout << endl;
     }
 
-#if 0
-    for (u64 r = 0; r < map.size(); ++r)
-    {
-        for (u64 c = 0; c < map.size(); ++c)
-        {
-            bool is_visited =
-                visited.count({r,c, Direction::up}) or
-                visited.count({r,c, Direction::down}) or
-                visited.count({r,c, Direction::left}) or
-                visited.count({r,c, Direction::right});
-
-            if (is_visited)
-            {
-                cout << '#';
-            }
-            else
-            {
-                cout << '.';
-            }
-        }
-        cout << endl;
-    }
-#endif // 0
-
-
+    // visited contains dulicate tiles with different direction!
+    // we need to get rid of those, hence the different comparator
     return set<Tile, Tile_Comparator>(visited.begin(), visited.end()).size();
 }
 
