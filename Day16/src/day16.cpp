@@ -192,11 +192,52 @@ const char* to_str(Direction dir)
     }
 }
 
+//template<typename T>
+//struct Vec2D
+//{
+//    union
+//    {
+//        T x {0};
+//        T c;
+//    };
+//
+//    union
+//    {
+//        T y {0};
+//        T r;
+//    };
+//
+//    bool operator<(const Vec2D& other) const
+//    {
+//        if (y == other.y)
+//        {
+//            return x < other.x;
+//        }
+//        else
+//        {
+//            return y < other.y;
+//        }
+//    }
+//};
+
+
+
 struct Tile
 {
     u64 r = 0;
     u64 c = 0;
     Direction dir = Direction::none;
+};
+
+struct Tile_Comparator
+{
+    bool operator()(const Tile& a, const Tile& b) const
+    {
+        if (a.r == b.r)
+            return a.c < b.c;
+        else
+            return a.r < b.r;
+    }
 };
 
 bool operator<(const Tile& a, const Tile& b)
@@ -381,7 +422,7 @@ u64 walk(const Matrix<T>& map, Tile start)
         std::set<Tile> local_visited;
         while (in_bounds(map, tile))
         {
-            draw(map, tile);
+            //draw(map, tile);
 
             if (local_visited.insert(tile).second == false) // am i in a loop?
             {
@@ -436,6 +477,7 @@ u64 walk(const Matrix<T>& map, Tile start)
         //cout << endl;
     }
 
+#if 0
     for (u64 r = 0; r < map.size(); ++r)
     {
         for (u64 c = 0; c < map.size(); ++c)
@@ -457,13 +499,15 @@ u64 walk(const Matrix<T>& map, Tile start)
         }
         cout << endl;
     }
+#endif // 0
 
-    return visited.size();
+
+    return set<Tile, Tile_Comparator>(visited.begin(), visited.end()).size();
 }
 
 u64 part1()
 {
-    auto file_path = "res\\test.txt";
+    auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
