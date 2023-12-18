@@ -435,7 +435,7 @@ u64 walk(const Matrix<T>& map, Tile start)
                 // split
                 Tile opposite {tile.r + 1, tile.c, Direction::down};
                 to_visit.push(opposite);
-                
+
                 tile.r -= 1;
                 tile.dir = Direction::up;
             }
@@ -446,7 +446,7 @@ u64 walk(const Matrix<T>& map, Tile start)
                 // split
                 Tile opposite {tile.r, tile.c - 1, Direction::left};
                 to_visit.push(opposite);
-                
+
                 tile.c += 1;
                 tile.dir = Direction::right;
             }
@@ -491,14 +491,47 @@ u64 part2()
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
+    Matrix<char> map;
+
     for (str line;
          std::getline(ifs, line);
          )
     {
-
+        map.emplace_back(vec<char>{line.begin(), line.end()});
     }
 
     u64 res = 0;
+    u64 rows = map.size();
+    u64 cols = map.at(0).size();
+
+    // top row, going down
+    for (u64 c = 0; c < cols; ++c)
+    {
+        auto count = walk(map, {0, c, Direction::down});
+        res = std::max(res, count);
+    }
+
+    // bottom row, going up
+    for (u64 c = 0; c < cols; ++c)
+    {
+        auto count = walk(map, {rows - 1, c, Direction::up});
+        res = std::max(res, count);
+    }
+
+    // leftmost column, going right
+    for (u64 r = 0; r < rows; ++r)
+    {
+        auto count = walk(map, {r, 0, Direction::right});
+        res = std::max(res, count);
+    }
+
+    // rightmost column, going left
+    for (u64 r = 0; r < rows; ++r)
+    {
+        auto count = walk(map, {r, cols - 1, Direction::left});
+        res = std::max(res, count);
+    }
+
     return res;
 }
 
