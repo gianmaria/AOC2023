@@ -155,7 +155,7 @@ static inline bool is_between(T num, T min, T max)
 
 enum class Direction: u32
 {
-    none, left, right, up, down
+    none, up, down, left, right
 };
 
 const char* to_str(Direction dir)
@@ -201,24 +201,159 @@ struct Tile
 
 bool operator<(const Tile& a, const Tile& b)
 {
-#if 0
-    if (a.dir == b.dir)
+#if 1
+    if (a.r == b.r)
     {
-        if (a.r == b.r)
-            return a.c < b.c;
+        if (a.c == b.c)
+        {
+            return a.dir < b.dir; // direction is important?
+        }
         else
-            return a.r < b.r;
+        {
+            return a.c < b.c;
+        }
     }
     else
     {
-        return a.dir < b.dir;
+        return a.r < b.r;
     }
+
 #else
     if (a.r == b.r)
         return a.c < b.c;
     else
         return a.r < b.r;
 #endif
+}
+
+template<typename T>
+void draw(const Matrix<T>& map, const Tile& tile)
+{
+    for (auto itr = map.begin();
+         itr != map.end();
+         ++itr)
+    {
+        u64 r = std::distance(map.begin(), itr);
+
+        for (auto itc = map.at(r).begin();
+             itc != map.at(r).end();
+             ++itc)
+        {
+            u64 c = std::distance(map.at(r).begin(), itc);
+
+            if (r == tile.r and c == tile.c)
+            {
+                cout << "#";
+            }
+            else
+            {
+                cout << *itc;
+            }
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
+void advance(Tile& tile, char ch)
+{
+    switch (tile.dir)
+    {
+        case Direction::up:
+        {
+            if (ch == '.' or ch == '|')
+            {
+                tile.r -= 1;
+            }
+            else if (ch == '/')
+            {
+                tile.dir = Direction::right;
+                tile.c += 1;
+            }
+            else if (ch == '\\')
+            {
+                tile.dir = Direction::left;
+                tile.c -= 1;
+            }
+            else
+            {
+                throw std::format("Unknown char <{}>", ch);
+            }
+        } break;
+
+        case Direction::down:
+        {
+            if (ch == '.' or ch == '|')
+            {
+                tile.r += 1;
+            }
+            else if (ch == '/')
+            {
+                tile.dir = Direction::left;
+                tile.c -= 1;
+            }
+            else if (ch == '\\')
+            {
+                tile.dir = Direction::right;
+                tile.c += 1;
+            }
+            else
+            {
+                throw std::format("Unknown char <{}>", ch);
+            }
+        } break;
+
+        case Direction::left:
+        {
+            if (ch == '.' or ch == '-')
+            {
+                tile.c -= 1;
+            }
+            else if (ch == '/')
+            {
+                tile.dir = Direction::down;
+                tile.r += 1;
+            }
+            else if (ch == '\\')
+            {
+                tile.dir = Direction::up;
+                tile.r -= 1;
+            }
+            else
+            {
+                throw std::format("Unknown char <{}>", ch);
+            }
+        }
+        break;
+
+        case Direction::right:
+        {
+            if (ch == '.' or ch == '-')
+            {
+                tile.c += 1;
+            }
+            else if (ch == '/')
+            {
+                tile.dir = Direction::up;
+                tile.r -= 1;
+            }
+            else if (ch == '\\')
+            {
+                tile.dir = Direction::down;
+                tile.r += 1;
+            }
+            else
+            {
+                throw std::format("Unknown char <{}>", ch);
+            }
+        }
+        break;
+
+        case Direction::none:
+        {
+            int s = 0;
+        } break;
+    }
 }
 
 template<typename T>
@@ -234,107 +369,6 @@ u64 walk(const Matrix<T>& map, Tile start)
         return res;
     };
 
-    auto advance = [](Tile& tile, char ch)
-    {
-        switch (tile.dir)
-        {
-            case Direction::up:
-            {
-                if (ch == '/')
-                {
-                    tile.dir = Direction::right;
-                    tile.c += 1;
-                }
-                else if (ch == '\\')
-                {
-                    tile.dir = Direction::left;
-                    tile.c -= 1;
-                }
-                else if (ch == '.' or ch == '|')
-                {
-                    tile.r -= 1;
-                }
-                else
-                {
-                    throw std::format("Unknown char <{}>", ch);
-                }
-            } break;
-
-            case Direction::down:
-            {
-                if (ch == '/')
-                {
-                    tile.dir = Direction::left;
-                    tile.c -= 1;
-                }
-                else if (ch == '\\')
-                {
-                    tile.dir = Direction::right;
-                    tile.c += 1;
-                }
-                else if (ch == '.' or ch == '|')
-                {
-                    tile.r += 1;
-                }
-                else
-                {
-                    throw std::format("Unknown char <{}>", ch);
-                }
-            } break;
-
-            case Direction::left:
-            {
-                if (ch == '/')
-                {
-                    tile.dir = Direction::down;
-                    tile.r += 1;
-                }
-                else if (ch == '\\')
-                {
-                    tile.dir = Direction::up;
-                    tile.r -= 1;
-                }
-                else if (ch == '.' or ch == '-')
-                {
-                    tile.c -= 1;
-                }
-                else
-                {
-                    throw std::format("Unknown char <{}>", ch);
-                }
-            }
-            break;
-
-            case Direction::right:
-            {
-                if (ch == '/')
-                {
-                    tile.dir = Direction::up;
-                    tile.r -= 1;
-                }
-                else if (ch == '\\')
-                {
-                    tile.dir = Direction::down;
-                    tile.r += 1;
-                }
-                else if (ch == '.' or ch == '-')
-                {
-                    tile.c += 1;
-                }
-                else
-                {
-                    throw std::format("Unknown char <{}>", ch);
-                }
-            }
-            break;
-
-            case Direction::none:
-            {
-                int s = 0;
-            } break;
-        }
-    };
-
     std::queue<Tile> Q;
     Q.push(start);
 
@@ -345,75 +379,64 @@ u64 walk(const Matrix<T>& map, Tile start)
         Tile tile = Q.front();
         Q.pop();
 
-        if (not in_bounds(map, tile))
-            continue;
-
-        char ch = map.at(tile.r).at(tile.c);
-
-        cout << std::format("[{}] ({},{}) '{}' {}",
-                            visited.size(),
-                            tile.r + 1, tile.c + 1,
-                            ch, to_str(tile.dir))
-            << endl;
-
-        if (ch == '|'
-            and
-            (tile.dir == Direction::left or tile.dir == Direction::right))
+        std::set<Tile> local_visited;
+        while (in_bounds(map, tile))
         {
-            // split
-            Tile opposite {tile.r + 1, tile.c, Direction::down};
-            if (visited.count(opposite) == 0)
+            draw(map, tile);
+
+            visited.insert(tile);
+
+            if (local_visited.count(tile) != 0)
             {
-                Q.push(opposite);
-                visited.insert(opposite);
+                int s = 0;
+                break;
             }
 
-            if (visited.count(tile) == 0)
+            local_visited.insert(tile);
+
+            char ch = map.at(tile.r).at(tile.c);
+
+            //cout << std::format("[{}] ({},{}) '{}' {}",
+            //                    visited.size(),
+            //                    tile.r + 1, tile.c + 1,
+            //                    ch, to_str(tile.dir))
+            //    << endl;
+
+            if (ch == '|'
+                and
+                (tile.dir == Direction::left or tile.dir == Direction::right))
             {
-                visited.insert(tile);
+                // split
+                Tile opposite {tile.r + 1, tile.c, Direction::down};
+                if (visited.count(opposite) == 0)
+                {
+                    Q.push(opposite);
+                }
 
                 tile.r -= 1;
                 tile.dir = Direction::up;
-
-                Q.push(tile);
             }
-
-        }
-        else if (ch == '-'
-                 and
-                 (tile.dir == Direction::down or tile.dir == Direction::up))
-        {
-            // split
-            Tile opposite {tile.r, tile.c - 1, Direction::left};
-            if (visited.count(opposite) == 0)
+            else if (ch == '-'
+                     and
+                     (tile.dir == Direction::down or tile.dir == Direction::up))
             {
-                Q.push(opposite);
-                visited.insert(opposite);
-            }
-
-            if (visited.count(tile) == 0)
-            {
-                visited.insert(tile);
+                // split
+                Tile opposite {tile.r, tile.c - 1, Direction::left};
+                if (visited.count(opposite) == 0)
+                {
+                    Q.push(opposite);
+                }
 
                 tile.c += 1;
                 tile.dir = Direction::right;
-
-                Q.push(tile);
             }
-
-        }
-        else
-        {
-            if (visited.count(tile) == 0)
+            else
             {
-                visited.insert(tile);
-
                 advance(tile, ch);
-                Q.push(tile);
             }
-
         }
 
+        //cout << endl;
     }
 
     return visited.size();
