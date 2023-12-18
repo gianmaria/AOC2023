@@ -164,27 +164,27 @@ const char* to_str(Direction dir)
     {
         case Direction::up:
         {
-            return "up";
+            return "^";
         } break;
 
         case Direction::down:
         {
-            return "down";
+            return "v";
         } break;
 
         case Direction::left:
         {
-            return "left";
+            return "<";
         } break;
 
         case Direction::right:
         {
-            return "right";
+            return ">";
         } break;
 
         case Direction::none:
         {
-            return "none";
+            return "?";
         } break;
 
         default:
@@ -194,19 +194,19 @@ const char* to_str(Direction dir)
 
 struct Tile
 {
-    u32 r = 0;
-    u32 c = 0;
+    u64 r = 0;
+    u64 c = 0;
     Direction dir = Direction::none;
 };
 
 bool operator<(const Tile& a, const Tile& b)
 {
-#if 1
     if (a.r == b.r)
     {
         if (a.c == b.c)
         {
-            return a.dir < b.dir; // direction is important?
+            // is direction is important? yes
+            return a.dir < b.dir;
         }
         else
         {
@@ -217,13 +217,6 @@ bool operator<(const Tile& a, const Tile& b)
     {
         return a.r < b.r;
     }
-
-#else
-    if (a.r == b.r)
-        return a.c < b.c;
-    else
-        return a.r < b.r;
-#endif
 }
 
 template<typename T>
@@ -231,7 +224,7 @@ void draw(const Matrix<T>& map, const Tile& tile)
 {
     for (auto itr = map.begin();
          itr != map.end();
-         ++itr)
+    ++itr)
     {
         u64 r = std::distance(map.begin(), itr);
 
@@ -243,7 +236,7 @@ void draw(const Matrix<T>& map, const Tile& tile)
 
             if (r == tile.r and c == tile.c)
             {
-                cout << "#";
+                cout << to_str(tile.dir);
             }
             else
             {
@@ -379,20 +372,24 @@ u64 walk(const Matrix<T>& map, Tile start)
         Tile tile = Q.front();
         Q.pop();
 
+        if (visited.insert(tile).second == false)
+        {
+            int s = 0;
+            continue;
+        }
+
         std::set<Tile> local_visited;
         while (in_bounds(map, tile))
         {
             draw(map, tile);
 
-            visited.insert(tile);
-
-            if (local_visited.count(tile) != 0)
+            if (local_visited.insert(tile).second == false) // am i in a loop?
             {
                 int s = 0;
                 break;
             }
 
-            local_visited.insert(tile);
+            visited.insert(tile);
 
             char ch = map.at(tile.r).at(tile.c);
 
@@ -437,6 +434,28 @@ u64 walk(const Matrix<T>& map, Tile start)
         }
 
         //cout << endl;
+    }
+
+    for (u64 r = 0; r < map.size(); ++r)
+    {
+        for (u64 c = 0; c < map.size(); ++c)
+        {
+            bool is_visited =
+                visited.count({r,c, Direction::up}) or
+                visited.count({r,c, Direction::down}) or
+                visited.count({r,c, Direction::left}) or
+                visited.count({r,c, Direction::right});
+
+            if (is_visited)
+            {
+                cout << '#';
+            }
+            else
+            {
+                cout << '.';
+            }
+        }
+        cout << endl;
     }
 
     return visited.size();
