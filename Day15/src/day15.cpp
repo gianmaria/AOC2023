@@ -23,6 +23,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <deque>
 
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -187,6 +188,91 @@ u64 part1()
     return res;
 }
 
+struct Lens
+{
+    u32 focal_length = 0;
+    str label = "";
+
+    bool operator==(const Lens& other) const
+    {
+        return other.focal_length == focal_length and other.label == label;
+    }
+    bool operator==(str_cref other_label) const
+    {
+        return other_label == label;
+    }
+};
+
+struct Box
+{
+    u32 num = 0;
+    std::deque<Lens> lenses;
+
+    bool contains(str_cref label)
+    {
+        return std::find(lenses.cbegin(), lenses.cend(), label) != lenses.cend();
+    }
+
+    void replace(str_cref label, u32 new_focal_len)
+    {
+        auto it = std::find(lenses.begin(), lenses.end(), label);
+        if (it == lenses.end())
+        {
+            throw "Cannot find label in labels";
+        }
+
+        it->focal_length = new_focal_len;
+    }
+
+    void add_lens(u32 focal_length, str_cref label)
+    {
+        lenses.push_back({focal_length, label});
+    }
+
+    void remove_lens(str_cref label)
+    {
+        auto it = std::find(lenses.begin(), lenses.end(), label);
+        if (it == lenses.end())
+        {
+            throw "Cannot find label in labels @remove_lens";
+        }
+
+        lenses.erase(it);
+    }
+
+};
+
+void print_boxes(const std::array<Box, 256> boxes)
+{
+    // Box 0: [rn 1] [cm 2]
+    // Box 1: [qp 3]
+
+    for (const auto& box : boxes)
+    {
+        if (box.lenses.empty())
+            continue;
+
+        cout << std::format("Box {}: ", box.num);
+        for (const auto& lens : box.lenses)
+        {
+            cout << std::format("[{} {}] ", lens.label, lens.focal_length);
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
+auto create_boxes()
+{
+    std::array<Box, 256> boxes;
+    u32 num = 0;
+    for (auto& box : boxes)
+    {
+        box.num = num++;
+    }
+    return boxes;
+}
+
 u64 part2()
 {
     auto file_path = "res\\input.txt";
@@ -194,14 +280,79 @@ u64 part2()
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-    for (str line;
-         std::getline(ifs, line);
-         )
-    {
+    str line;
+    std::getline(ifs, line);
 
+    auto steps = split_string(line, ',');
+
+    auto boxes = create_boxes();
+
+    for (const auto& step : steps)
+    {
+        //cout << "After '" << step << "':" << endl;
+
+        if (step.find("=") != str::npos)
+        {
+            auto res = split_string(step, '=');
+            auto label = res[0];
+            u32 focal_len = std::stoul(res[1]);
+
+            u32 box_num = hash(label);
+
+            auto& box = boxes.at(box_num);
+
+            if (box.contains(label))
+            {
+                box.replace(label, focal_len);
+            }
+            else
+            {
+                box.add_lens(focal_len, label);
+            }
+        }
+        else if (step.find("-") != str::npos)
+        {
+            auto res = split_string(step, '-');
+            auto label = res[0];
+
+            u32 box_num = hash(label);
+
+            auto& box = boxes.at(box_num);
+
+            if (box.contains(label))
+            {
+                box.remove_lens(label);
+            }
+            else
+            {
+                // do nothing
+            }
+
+        }
+        else
+        {
+            throw "Weird step, uga buga";
+        }
+
+        //print_boxes(boxes);
     }
 
     u64 res = 0;
+    for (const auto& box : boxes)
+    {
+        if (box.lenses.empty())
+            continue;        
+        for (const auto& lens : box.lenses)
+        {
+            u64 slot = std::distance(
+                box.lenses.cbegin(),
+                std::find(box.lenses.cbegin(), box.lenses.cend(), lens));
+
+            u64 tmp = (box.num + 1) * (slot + 1) * lens.focal_length;
+            res += tmp;
+        }
+    }
+
     return res;
 }
 
@@ -209,8 +360,11 @@ int main()
 {
     try
     {
-        cout << "day 15 part 1: " << part1() << endl;
-        cout << "day 15 part 2: " << part2() << endl;
+        auto part_1 = part1();
+        cout << "day 15 part 1: " << part_1 << endl;
+
+        auto part_2 = part2();
+        cout << "day 15 part 2: " << part_2 << endl;
     }
     catch (const char* e)
     {
