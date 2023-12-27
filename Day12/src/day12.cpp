@@ -39,11 +39,13 @@ using std::endl;
 using std::string;
 using std::string_view;
 using std::vector;
+using std::array;
 using std::set;
 using std::map;
 using std::pair;
 
 using str = std::string;
+using strv = std::string_view;
 using str_cref = std::string const&;
 
 using namespace std::string_literals;
@@ -157,27 +159,83 @@ static inline bool is_between(T num, T min, T max)
 
 u64 compute(str_cref input, const vec<u64>& spring_groups)
 {
-    auto create_str = [](std::stringstream& ss,
-                         const vec<u64>& indexes,
-                         str_cref alphabet)
+    auto create_str = [](const vec<u64>& indexes,
+                         str_cref alphabet,
+                         array<char, 512>& dest)
     {
-        ss.str("");
         for (auto [index, _] : views::enumerate(indexes))
         {
-            ss << alphabet[indexes[static_cast<u64>(index)]];
+            dest[index] = alphabet[indexes[static_cast<u64>(index)]];
         }
-        return ss.str();
     };
 
+    // group of broken springs
+    auto is_valid = [](const char* input,
+                       const vec<u64>& spring_groups)
+    {
+        if (strcmp(input, ".#...#....###.") == 0)
+        {
+            int s = 0;
+        }
+
+        u64 spring_idx = 0;
+
+        for (u64 i = 0;
+             i < strlen(input);
+             ++i)
+        {
+            u64 counter = 0;
+            if (input[i] == '#')
+            {
+                while (i < strlen(input) and
+                       input[i++] == '#')
+                {
+                    ++counter;
+                }
+
+                --i;
+
+                if (spring_idx < spring_groups.size())
+                {
+                    const u64& group_count = spring_groups[spring_idx++];
+                    if (counter != group_count)
+                        return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+
+
+        return true;
+    };
+
+    const str alphabet = ".#";
+    array<char, 512> buffer {};
+    array<char, 512> to_test {};
+
+    // cerate the regex based on spring_groups
+    // for checking valid combination of operational and damaged springs 
+    // out of every geenrated combination
+    /*
+        regex = \.* #{1} \.+ #{1} \.+ #{3} \.*
+    */
     std::stringstream ss;
-    str alphabet = ".#";
+    ss << "\\.*";
+    for (u64 i = 0; i < spring_groups.size() - 1; ++i)
+    {
+        ss << "(#{" << spring_groups[i] << "})" << "\\.+";
+    }
+    ss << "(#{" << spring_groups.back() << "})" << "\\.*";
+    const auto regex = std::regex(ss.str());
 
     auto qmark_count = static_cast<u64>(ranges::count(input, '?'));
     auto max = static_cast<u64>(std::pow(alphabet.size(), qmark_count));
-    
-    vec<str> collection;
+
+    u64 correct = 0;
     auto indexes = vec<u64>(qmark_count, 0);
-    collection.reserve(max);
     u64 counter = 0;
     // generate all the possible permutations of the alphabet
     while (counter < max)
@@ -186,7 +244,33 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
              i < alphabet.size();
              ++i, ++counter)
         {
-            collection.push_back(create_str(ss, indexes, alphabet));
+            create_str(indexes, alphabet, buffer);
+
+            u64 elem_index = 0;
+            for (u64 j = 0;
+                 j < input.size();
+                 ++j)
+            {
+                if (input[j] == '?')
+                    to_test[j] = buffer[elem_index++];
+                else
+                    to_test[j] = input[j];
+            }
+            to_test[to_test.size() - 1] = 0;
+
+#if 0
+            if (std::regex_match(to_test.data(), regex))
+            {
+                ++correct;
+            }
+#else
+            if (is_valid(to_test.data(), spring_groups))
+            {
+                ++correct;
+            }
+#endif // 0
+
+
             indexes[0] += 1;
         }
 
@@ -202,47 +286,7 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
         }
     }
 
-    /*
-    * regex = \.* #{1} \.+ #{1} \.+ #{3} \.*
-    */
-    // cerate the regex based on spring_groups
-    // for checking valid combination of operational and damaged springs 
-    // out of every geenrated combination
-    ss.str("");
-    ss << "\\.*";
-    for (u64 i = 0; i < spring_groups.size() - 1; ++i)
-    {
-        ss << "(#{" << spring_groups[i] << "})" << "\\.+";
-    }
-    ss << "(#{" << spring_groups.back() << "})" << "\\.*";
-
-    const auto regex = std::regex(ss.str());
-
-    vec<str> correct;
-    for (const auto& elem : collection)
-    {
-        auto to_test = str(input.length(), 'A');
-        u64 elem_index = 0;
-
-        for (auto [to_test_index, ch] : views::enumerate(input))
-        {
-            if (ch != '?')
-            {
-                to_test.at(to_test_index) = ch;
-            }
-            else
-            {
-                to_test.at(to_test_index) = elem.at(elem_index++);
-            }
-        }
-
-        if (std::regex_match(to_test, regex))
-        {
-            correct.push_back(std::move(to_test));
-        }
-    }
-
-    return correct.size();
+    return correct;
 }
 
 u64 part1()
@@ -253,7 +297,6 @@ u64 part1()
         throw std::format("Cannot open file <{}>", file_path);
 
     u64 acc = 0;
-    u64 count = 0;
     for (str line;
          std::getline(ifs, line);
          )
@@ -268,7 +311,7 @@ u64 part1()
                        [](str_cref str) { return std::stoull(str); }
         );
 
-        cout << std::format("{}) working with <{}>", ++count, parts[0]) << endl;
+        //cout << std::format("{}) working with <{}>", ++count, parts[0]) << endl;
         acc += compute(parts[0], nums);
     }
 
@@ -284,14 +327,13 @@ u64 part2()
         throw std::format("Cannot open file <{}>", file_path);
 
     u64 acc = 0;
-    u64 count = 0;
     for (str line;
          std::getline(ifs, line);
          )
     {
         auto parts = split_string(line, ' ');
-        auto unfolded = std::format("{},{},{},{},{}", 
-                               parts[1],parts[1],parts[1],parts[1],parts[1]);
+        auto unfolded = std::format("{},{},{},{},{}",
+                                    parts[1], parts[1], parts[1], parts[1], parts[1]);
         auto nums_str = split_string(unfolded, ',');
 
         vec<u64> nums;
@@ -303,9 +345,9 @@ u64 part2()
         auto input = parts[0];
         input = std::format("{}?{}?{}?{}?{}",
                             input, input, input, input, input);
-        
-        
-        cout << std::format("{}) working with <{}>", ++count, input) << endl;
+
+
+        //cout << std::format("{}) working with <{}>", ++count, input) << endl;
         acc += compute(input, nums);
     }
 
@@ -317,11 +359,12 @@ int main()
 {
     try
     {
-        /*auto p1 = part1();
-        cout << "day 12 part 1: " << p1 << endl;*/
+        //auto rez = compute(".??..??...?##.", {1,1,3});
+        auto p1 = part1();
+        cout << "day 12 part 1: " << p1 << endl;
 
-        auto p2 = part2();
-        cout << "day 12 part 2: " << p2 << endl;
+        /*auto p2 = part2();
+        cout << "day 12 part 2: " << p2 << endl;*/
     }
     catch (const char* e)
     {
