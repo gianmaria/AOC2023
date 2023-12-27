@@ -157,24 +157,6 @@ static inline bool is_between(T num, T min, T max)
 
 u64 compute(str_cref input, const vec<u64>& spring_groups)
 {
-    str alphabet = ".#";
-
-    vec<u64> qmark_indexes;
-    for (auto [index, ch] : views::enumerate(input))
-    {
-        if (ch == '?') qmark_indexes.push_back(static_cast<u64>(index));
-    }
-
-    auto qmark_count = static_cast<u64>(ranges::count(input, '?'));
-
-    auto max = static_cast<u64>(std::pow(alphabet.size(), qmark_count));
-    vec<str> collection;
-    collection.reserve(max);
-
-    auto indexes = vec<u64>(qmark_count, 0);
-
-    std::stringstream ss;
-
     auto create_str = [](std::stringstream& ss,
                          const vec<u64>& indexes,
                          str_cref alphabet)
@@ -187,7 +169,17 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
         return ss.str();
     };
 
+    std::stringstream ss;
+    str alphabet = ".#";
+
+    auto qmark_count = static_cast<u64>(ranges::count(input, '?'));
+    auto max = static_cast<u64>(std::pow(alphabet.size(), qmark_count));
+    
+    vec<str> collection;
+    auto indexes = vec<u64>(qmark_count, 0);
+    collection.reserve(max);
     u64 counter = 0;
+    // generate all the possible permutations of the alphabet
     while (counter < max)
     {
         for (u64 i = 0;
@@ -210,10 +202,12 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
         }
     }
 
-    vec<str> correct;
     /*
     * regex = \.* #{1} \.+ #{1} \.+ #{3} \.*
     */
+    // cerate the regex based on spring_groups
+    // for checking valid combination of operational and damaged springs 
+    // out of every geenrated combination
     ss.str("");
     ss << "\\.*";
     for (u64 i = 0; i < spring_groups.size() - 1; ++i)
@@ -224,20 +218,21 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
 
     const auto regex = std::regex(ss.str());
 
+    vec<str> correct;
     for (const auto& elem : collection)
     {
         auto to_test = str(input.length(), 'A');
-        u64 pos = 0;
+        u64 elem_index = 0;
 
-        for (auto [index, ch] : views::enumerate(input))
+        for (auto [to_test_index, ch] : views::enumerate(input))
         {
             if (ch != '?')
             {
-                to_test.at(index) = ch;
+                to_test.at(to_test_index) = ch;
             }
             else
             {
-                to_test.at(index) = elem.at(pos++);
+                to_test.at(to_test_index) = elem.at(elem_index++);
             }
         }
 
@@ -245,7 +240,6 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
         {
             correct.push_back(std::move(to_test));
         }
-
     }
 
     return correct.size();
