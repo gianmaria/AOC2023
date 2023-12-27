@@ -226,6 +226,13 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
     // generate all the possible permutations of the alphabet
     while (counter < max)
     {
+        if (counter > 1 and 
+            counter % 5'000'000 == 0)
+        {
+            float perc = (float)counter / (float)max * 100.0f;
+            cout << perc << endl;
+        }
+
         for (u64 i = 0;
              i < alphabet.size();
              ++i, ++counter)
@@ -312,6 +319,7 @@ u64 part2()
         throw std::format("Cannot open file <{}>", file_path);
 
     u64 acc = 0;
+    u64 count = 0;
     for (str line;
          std::getline(ifs, line);
          )
@@ -332,7 +340,7 @@ u64 part2()
                             input, input, input, input, input);
 
 
-        //cout << std::format("{}) working with <{}>", ++count, input) << endl;
+        cout << std::format("{}) working with <{}>", ++count, input) << endl;
         acc += compute(input, nums);
     }
 
