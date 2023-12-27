@@ -173,41 +173,42 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
     auto is_valid = [](const char* input,
                        const vec<u64>& spring_groups)
     {
-        if (strcmp(input, ".#...#....###.") == 0)
+        /*if (strcmp(input, ".#...#....###.") == 0)
         {
             int s = 0;
-        }
+        }*/
 
-        u64 spring_idx = 0;
+        vec<u64> spring_groups_found;
+        spring_groups_found.reserve(2*spring_groups.size());
 
+        auto end = strlen(input);
         for (u64 i = 0;
-             i < strlen(input);
+             i < end;
              ++i)
         {
-            u64 counter = 0;
             if (input[i] == '#')
             {
-                while (i < strlen(input) and
+                u64 counter = 0;
+                while (i < end and
                        input[i++] == '#')
                 {
                     ++counter;
                 }
-
+                spring_groups_found.push_back(counter);
                 --i;
-
-                if (spring_idx < spring_groups.size())
-                {
-                    const u64& group_count = spring_groups[spring_idx++];
-                    if (counter != group_count)
-                        return false;
-                }
-                else
-                {
-                    return false;
-                }
             }
         }
 
+        if (spring_groups_found.size() != spring_groups.size())
+            return false;
+
+        for (u64 i = 0;
+             i < spring_groups_found.size();
+             ++i)
+        {
+            if (spring_groups_found[i] != spring_groups[i])
+                return false;
+        }
 
         return true;
     };
@@ -215,21 +216,6 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
     const str alphabet = ".#";
     array<char, 512> buffer {};
     array<char, 512> to_test {};
-
-    // cerate the regex based on spring_groups
-    // for checking valid combination of operational and damaged springs 
-    // out of every geenrated combination
-    /*
-        regex = \.* #{1} \.+ #{1} \.+ #{3} \.*
-    */
-    std::stringstream ss;
-    ss << "\\.*";
-    for (u64 i = 0; i < spring_groups.size() - 1; ++i)
-    {
-        ss << "(#{" << spring_groups[i] << "})" << "\\.+";
-    }
-    ss << "(#{" << spring_groups.back() << "})" << "\\.*";
-    const auto regex = std::regex(ss.str());
 
     auto qmark_count = static_cast<u64>(ranges::count(input, '?'));
     auto max = static_cast<u64>(std::pow(alphabet.size(), qmark_count));
@@ -269,7 +255,6 @@ u64 compute(str_cref input, const vec<u64>& spring_groups)
                 ++correct;
             }
 #endif // 0
-
 
             indexes[0] += 1;
         }
@@ -359,12 +344,11 @@ int main()
 {
     try
     {
-        //auto rez = compute(".??..??...?##.", {1,1,3});
         auto p1 = part1();
         cout << "day 12 part 1: " << p1 << endl;
 
-        /*auto p2 = part2();
-        cout << "day 12 part 2: " << p2 << endl;*/
+        auto p2 = part2();
+        cout << "day 12 part 2: " << p2 << endl;
     }
     catch (const char* e)
     {
