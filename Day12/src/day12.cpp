@@ -51,6 +51,7 @@ using namespace std::string_view_literals;
 
 namespace fs = std::filesystem;
 namespace ranges = std::ranges;
+namespace views = std::views;
 
 template<typename T>
 using vec = vector<T>;
@@ -154,6 +155,101 @@ static inline bool is_between(T num, T min, T max)
 // ==============================================
 
 
+u64 compute(str_cref input, const vec<u64>& spring_groups)
+{
+    str alphabet = ".#";
+
+    vec<u64> qmark_indexes;
+    for (auto [index, ch] : views::enumerate(input))
+    {
+        if (ch == '?') qmark_indexes.push_back(static_cast<u64>(index));
+    }
+
+    auto qmark_count = static_cast<u64>(ranges::count(input, '?'));
+
+    auto max = static_cast<u64>(std::pow(alphabet.size(), qmark_count));
+    vec<str> collection;
+    collection.reserve(max);
+
+    auto indexes = vec<u64>(qmark_count, 0);
+
+    std::stringstream ss;
+
+    auto create_str = [](std::stringstream& ss,
+                         const vec<u64>& indexes,
+                         str_cref alphabet)
+    {
+        ss.str("");
+        for (auto [index, _] : views::enumerate(indexes))
+        {
+            ss << alphabet[indexes[static_cast<u64>(index)]];
+        }
+        return ss.str();
+    };
+
+    u64 counter = 0;
+    while (counter < max)
+    {
+        for (u64 i = 0;
+             i < alphabet.size();
+             ++i, ++counter)
+        {
+            collection.push_back(create_str(ss, indexes, alphabet));
+            indexes[0] += 1;
+        }
+
+        for (u64 i = 0;
+             i < indexes.size() - 1;
+             ++i)
+        {
+            if (indexes[i] >= alphabet.size())
+            {
+                indexes[i] = 0;
+                indexes[i + 1] += 1;
+            }
+        }
+    }
+
+    vec<str> correct;
+    /*
+    * regex = \.* #{1} \.+ #{1} \.+ #{3} \.*
+    */
+    ss.str("");
+    ss << "\\.*";
+    for (u64 i = 0; i < spring_groups.size() - 1; ++i)
+    {
+        ss << "(#{" << spring_groups[i] << "})" << "\\.+";
+    }
+    ss << "(#{" << spring_groups.back() << "})" << "\\.*";
+
+    const auto regex = std::regex(ss.str());
+
+    for (const auto& elem : collection)
+    {
+        auto to_test = str(input.length(), 'A');
+        u64 pos = 0;
+
+        for (auto [index, ch] : views::enumerate(input))
+        {
+            if (ch != '?')
+            {
+                to_test.at(index) = ch;
+            }
+            else
+            {
+                to_test.at(index) = elem.at(pos++);
+            }
+        }
+
+        if (std::regex_match(to_test, regex))
+        {
+            correct.push_back(std::move(to_test));
+        }
+
+    }
+
+    return correct.size();
+}
 
 u64 part1()
 {
@@ -162,16 +258,27 @@ u64 part1()
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-    Matrix<char> map;
-
+    u64 acc = 0;
+    u64 count = 0;
     for (str line;
          std::getline(ifs, line);
          )
     {
-        //map.emplace_back(vec<char>{line.begin(), line.end()});
+        auto parts = split_string(line, ' ');
+        auto nums_str = split_string(parts[1], ',');
+
+        vec<u64> nums;
+        std::transform(nums_str.begin(),
+                       nums_str.end(),
+                       std::back_inserter(nums),
+                       [](str_cref str) { return std::stoull(str); }
+        );
+
+        cout << std::format("{}) working with <{}>", ++count, parts[0]) << endl;
+        acc += compute(parts[0], nums);
     }
 
-    u64 res = 0;
+    u64 res = acc;
     return res;
 }
 
