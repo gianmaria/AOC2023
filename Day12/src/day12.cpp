@@ -278,20 +278,38 @@ u64 part1()
 
 u64 part2()
 {
-    auto file_path = "res\\input.txt";
+    auto file_path = "res\\test.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-
+    u64 acc = 0;
+    u64 count = 0;
     for (str line;
          std::getline(ifs, line);
          )
     {
-        //map.emplace_back(vec<char>{line.begin(), line.end()});
+        auto parts = split_string(line, ' ');
+        auto unfolded = std::format("{},{},{},{},{}", 
+                               parts[1],parts[1],parts[1],parts[1],parts[1]);
+        auto nums_str = split_string(unfolded, ',');
+
+        vec<u64> nums;
+        std::transform(nums_str.begin(),
+                       nums_str.end(),
+                       std::back_inserter(nums),
+                       [](str_cref str) { return std::stoull(str); }
+        );
+        auto input = parts[0];
+        input = std::format("{}?{}?{}?{}?{}",
+                            input, input, input, input, input);
+        
+        
+        cout << std::format("{}) working with <{}>", ++count, input) << endl;
+        acc += compute(input, nums);
     }
 
-    u64 res = 0;
+    u64 res = acc;
     return res;
 }
 
@@ -299,8 +317,8 @@ int main()
 {
     try
     {
-        auto p1 = part1();
-        cout << "day 12 part 1: " << p1 << endl;
+        /*auto p1 = part1();
+        cout << "day 12 part 1: " << p1 << endl;*/
 
         auto p2 = part2();
         cout << "day 12 part 2: " << p2 << endl;
