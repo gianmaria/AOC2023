@@ -121,19 +121,20 @@ str trim(str_cref s)
     return ltrim(rtrim(s));
 }
 
-vector<str> split_string(str_cref line, char sep)
+vector<str> split_string(str_cref input, str_cref separator)
 {
-    vector<str> res {};
-    std::istringstream iss {line};
+    vector<str> tokens;
+    size_t start = 0, end;
 
-    str token {};
-
-    while (std::getline(iss, token, sep))
+    while ((end = input.find(separator, start)) != str::npos)
     {
-        res.push_back(trim(token));
+        tokens.push_back(input.substr(start, end - start));
+        start = end + separator.length();
     }
 
-    return res;
+    tokens.push_back(input.substr(start));
+
+    return tokens;
 }
 
 bool contains(str_cref string, str_cref text)
@@ -160,6 +161,38 @@ static inline bool is_between(T num, T min, T max)
 //                                    
 // ==============================================
 // ==============================================
+
+
+
+vec<str> transpose(const vec<str>& input)
+{
+    auto t_input = vec<str>(input[0].length(), str(input.size(), 'A'));
+    u64 rows = input.size();
+    u64 cols = input.at(0).size();
+
+    for (u64 r = 0;
+         r < rows;
+         ++r)
+    {
+        for (u64 c = 0;
+             c < cols;
+             ++c)
+        {
+            t_input.at(c).at(r) = input.at(r).at(c);
+        }
+    }
+
+    return t_input;
+}
+
+void print_input(const vec<str>& input)
+{
+    for (const auto& row : input)
+    {
+        println("{}", row);
+    }
+    //println("");
+}
 
 
 struct Symmetry_Info
@@ -189,7 +222,7 @@ optional<Symmetry_Info> check_symmetry(const vec<str>& input)
              --a)
         {
             u64 b = r + (r - a) + 1;
-            println("checking {} {}", a, b);
+            //println("checking {} {}", a, b);
 
             if (b < rows and
                 input.at(a) == input.at(b))
@@ -204,38 +237,7 @@ optional<Symmetry_Info> check_symmetry(const vec<str>& input)
     return std::nullopt;
 }
 
-vec<str> transpose(const vec<str>& input)
-{
-    auto t_input = vec<str>(input[0].length(), str(input.size(), 'A'));
-    u64 rows = input.size();
-    u64 cols = input.at(0).size();
-
-    for (u64 r = 0;
-         r < rows;
-         ++r)
-    {
-        for (u64 c = 0;
-             c < cols;
-             ++c)
-        {
-            t_input.at(c).at(r) = input.at(r).at(c);
-        }
-    }
-
-    return t_input;
-}
-
-void print_input(const vec<str>& input)
-{
-    for (const auto& row : input)
-    {
-        println("{}", row);
-    }
-    println("");
-}
-
-pair<bool, u64>
-solve(const vec<str>& input)
+u64 solve(const vec<str>& input)
 {
     auto h_symmetry = check_symmetry(input);
 
@@ -245,53 +247,39 @@ solve(const vec<str>& input)
     if (h_symmetry.has_value() and
         v_symmetry.has_value())
     {
+        println("==========================================");
         print_input(input);
         print_input(t_input);
         println("==========================================");
-
-        if (h_symmetry.value().len > v_symmetry.value().len)
-        {
-            return std::make_pair(true, h_symmetry.value().pos);
-        }
-        else if (h_symmetry.value().len < v_symmetry.value().len)
-        {
-            return std::make_pair(false, v_symmetry.value().pos);
-        }
-        else
-        {
-            if (h_symmetry.value().pos > v_symmetry.value().pos)
-            {
-                return std::make_pair(true, h_symmetry.value().pos);
-            }
-            else if (h_symmetry.value().pos < v_symmetry.value().pos)
-            {
-                return std::make_pair(false, v_symmetry.value().pos);
-            }
-            else
-            {
-                print_input(input);
-                print_input(t_input);
-                println("--------------------------------");
-            }
-        }
+    }
+    else if (not
+             (h_symmetry.has_value() and
+             v_symmetry.has_value()))
+    {
+        println("-------------------------------------------------");
+        print_input(input);
+        print_input(t_input);
+        println("-------------------------------------------------");
     }
     else if (h_symmetry.has_value())
     {
-        //println("Horizontal symmetry");
-        return std::make_pair(true, h_symmetry.value().pos);
+        return (h_symmetry.value().pos + 1) * 100;
     }
     else if (v_symmetry.has_value())
     {
-        //println("Vertical symmetry");
-        return std::make_pair(false, v_symmetry.value().pos);
+        return v_symmetry.value().pos + 1;
     }
     else
     {
+        println("****************************************************");
         print_input(input);
         print_input(t_input);
+        println("****************************************************");
 
         int s = 0;
     }
+
+    return 0;
 }
 
 u64 part1()
@@ -301,47 +289,14 @@ u64 part1()
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-    vec<str> puzzle;
-    puzzle.reserve(20);
+    auto input = str(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+
     u64 acc = 0;
-
-    for (str line;
-         std::getline(ifs, line);
-         )
+    for (auto& block : split_string(input, "\n\n"))
     {
-        if (line != "")
-        {
-            puzzle.push_back(std::move(line));
-        }
-        else
-        {
-            auto [h_symmetry, pos] = solve(puzzle);
-            pos += 1;
-            if (h_symmetry)
-            {
-                acc += 100 * pos;
-            }
-            else
-            {
-                acc += pos;
-            }
-
-            puzzle.clear();
-        }
+        auto puzzle = split_string(block, "\n");
+        acc += solve(puzzle);
     }
-
-    // calculate last one
-    auto [h_symmetry, pos] = solve(puzzle);
-    pos += 1;
-    if (h_symmetry)
-    {
-        acc += 100 * pos;
-    }
-    else
-    {
-        acc += pos;
-    }
-
 
     u64 res = acc;
     return res;
