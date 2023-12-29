@@ -166,9 +166,9 @@ static inline bool is_between(T num, T min, T max)
 
 vec<str> transpose(const vec<str>& input)
 {
-    auto t_input = vec<str>(input[0].length(), str(input.size(), 'A'));
     u64 rows = input.size();
     u64 cols = input.at(0).size();
+    auto t_input = vec<str>(cols, str(rows, 'A'));
 
     for (u64 r = 0;
          r < rows;
@@ -191,50 +191,54 @@ void print_input(const vec<str>& input)
     {
         println("{}", row);
     }
-    //println("");
+    println("");
 }
 
-
-struct Symmetry_Info
+bool can_fold(const vec<str>& input, u64 r)
 {
-    u64 pos = 0;
-    u64 len = 0;
-};
-
-optional<Symmetry_Info> check_symmetry(const vec<str>& input)
-{
-    Symmetry_Info si {};
-
     u64 rows = input.size();
 
+    i64 top = r;
+    u64 bottom = r + 1;
+
+    bool res = true;
+    while (top >= 0 and bottom < rows)
+    {
+        if (input.at(top) != input.at(bottom))
+        {
+            res = false;
+            break;
+        }
+        --top;
+        ++bottom;
+    }
+
+    return res;
+}
+
+u64 check_symmetry(const vec<str>& input)
+{
+    u64 rows = input.size();
+
+    // NOTE: 
+    // look for adjacent matching lines
+    // then fold and check if all the overlapping lines matches
+    u64 pos = 0;
     for (u64 r = 0;
          r < rows - 1;
          ++r)
     {
-        if (input.at(r) != input.at(r + 1))
-            continue;
-
-        si.pos = r;
-
-        // count how "long" the symmetry is
-        for (i64 a = r;
-             a >= 0;
-             --a)
+        if (input.at(r) == input.at(r + 1))
         {
-            u64 b = r + (r - a) + 1;
-            //println("checking {} {}", a, b);
-
-            if (b < rows and
-                input.at(a) == input.at(b))
+            if (can_fold(input, r))
             {
-                ++si.len;
+                pos = r + 1;
+                break;
             }
         }
-
-        return std::make_optional(si);
     }
 
-    return std::nullopt;
+    return pos;
 }
 
 u64 solve(const vec<str>& input)
@@ -244,47 +248,24 @@ u64 solve(const vec<str>& input)
     auto t_input = transpose(input);
     auto v_symmetry = check_symmetry(t_input);
 
-    if (h_symmetry.has_value() and
-        v_symmetry.has_value())
+    if (h_symmetry != 0)
     {
-        println("==========================================");
-        print_input(input);
-        print_input(t_input);
-        println("==========================================");
+        return h_symmetry * 100;
     }
-    else if (not
-             (h_symmetry.has_value() and
-             v_symmetry.has_value()))
+    else if (v_symmetry != 0)
     {
-        println("-------------------------------------------------");
-        print_input(input);
-        print_input(t_input);
-        println("-------------------------------------------------");
-    }
-    else if (h_symmetry.has_value())
-    {
-        return (h_symmetry.value().pos + 1) * 100;
-    }
-    else if (v_symmetry.has_value())
-    {
-        return v_symmetry.value().pos + 1;
+        return v_symmetry;
     }
     else
     {
-        println("****************************************************");
-        print_input(input);
-        print_input(t_input);
-        println("****************************************************");
-
-        int s = 0;
+        throw "Unreachable code!";
+        return 0;
     }
-
-    return 0;
 }
 
 u64 part1()
 {
-    auto file_path = "res\\test.txt";
+    auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
