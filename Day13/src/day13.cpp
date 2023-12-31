@@ -185,7 +185,7 @@ vec<str> transpose(const vec<str>& input)
     return t_input;
 }
 
-void print_input(const vec<str>& input)
+void print_puzzle(const vec<str>& input)
 {
     for (const auto& row : input)
     {
@@ -272,21 +272,96 @@ u64 part1()
     return res;
 }
 
+struct Smudge
+{
+    u64 outer_row{};
+    u64 inner_row{};
+    u64 col{};
+    u64 score {};
+};
+
+u64 fix_smudge(vec<str>& input)
+{
+    vec<Smudge> smudges;
+
+    bool found = false;
+
+    for (auto outer = input.begin();
+         outer != input.end() - 1;
+         ++outer)
+    {
+        auto outer_row = std::distance(input.begin(), outer);
+
+        for (auto inner = outer + 1;
+             inner != input.end();
+             ++inner)
+        {
+            auto inner_row = std::distance(input.begin(), inner);
+
+            u64 pos = 0;
+            u64 diff_count = 0;
+            for (u64 i = 0;
+                 i < outer->length();
+                 ++i)
+            {
+                if ((*outer)[i] != (*inner)[i])
+                {
+                    pos = i;
+                    ++diff_count;
+                }
+            }
+
+            if (diff_count == 1)
+            {
+                found = true;
+
+                auto backup = (*outer)[pos];
+                (*outer)[pos] = (*inner)[pos];
+                auto score = solve(input);
+
+                smudges.emplace_back(outer_row, inner_row, pos, score);
+
+                /*println("Found diff in col {} between lines {} and {}, score: {}",
+                        pos+1, outer_row+1, inner_row+1, score);*/
+
+                (*outer)[pos] = backup;
+            }
+        }
+    }
+
+    if (not found)
+    {
+        int s = 0;
+        print_puzzle(input);
+        throw "Cannot find two rows with exactly one smudge :(";
+    }
+
+    std::sort(smudges.begin(), smudges.end(), 
+              [](const Smudge& a, const Smudge& b) 
+    {
+        return a.score > b.score;
+    });
+   
+    return smudges.begin()->score;
+}
+
 u64 part2()
 {
-    auto file_path = "res\\test.txt";
+    auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-    for (str line;
-         std::getline(ifs, line);
-         )
-    {
+    auto input = str(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 
+    u64 acc = 0;
+    for (auto& block : split_string(input, "\n\n"))
+    {
+        auto puzzle = split_string(block, "\n");
+        acc += fix_smudge(puzzle);
     }
 
-    u64 res = 0;
+    u64 res = acc;
     return res;
 }
 
@@ -294,7 +369,7 @@ int main()
 {
     try
     {
-        println("day 13 part 1: {}", part1());
+        //println("day 13 part 1: {}", part1());
         println("day 13 part 2: {}", part2());
 
         return 0;
