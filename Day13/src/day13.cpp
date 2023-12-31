@@ -241,7 +241,23 @@ u64 check_symmetry(const vec<str>& input)
     return pos;
 }
 
-u64 solve(const vec<str>& input)
+enum class Symm_Type: u16
+{
+    none, horizontal, vertical
+};
+
+const char* to_str(const Symm_Type& type)
+{
+    switch (type)
+    {
+        case Symm_Type::none: return "none";
+        case Symm_Type::horizontal: return "horizontal";
+        case Symm_Type::vertical: return "vertical";
+        default: return "unknown symm";
+    }
+}
+
+u64 solve(const vec<str>& input, Symm_Type* symm_type = nullptr)
 {
     auto h_symmetry = check_symmetry(input);
 
@@ -272,77 +288,94 @@ u64 part1()
     return res;
 }
 
-struct Smudge
+
+pair<u64, u64> count_diff(str_cref a, str_cref b)
 {
-    u64 outer_row{};
-    u64 inner_row{};
-    u64 col{};
-    u64 score {};
-};
+    u64 diff_count = 0;
+    u64 diff_pos = 0;
 
-u64 fix_smudge(vec<str>& input)
-{
-    vec<Smudge> smudges;
-
-    bool found = false;
-
-    for (auto outer = input.begin();
-         outer != input.end() - 1;
-         ++outer)
+    for (u64 i = 0;
+         i < a.length();
+         ++i)
     {
-        auto outer_row = std::distance(input.begin(), outer);
-
-        for (auto inner = outer + 1;
-             inner != input.end();
-             ++inner)
+        if (a.at(i) != b.at(i))
         {
-            auto inner_row = std::distance(input.begin(), inner);
+            ++diff_count;
+            diff_pos = i;
 
-            u64 pos = 0;
-            u64 diff_count = 0;
-            for (u64 i = 0;
-                 i < outer->length();
-                 ++i)
+            if (diff_count > 1)
             {
-                if ((*outer)[i] != (*inner)[i])
-                {
-                    pos = i;
-                    ++diff_count;
-                }
-            }
-
-            if (diff_count == 1)
-            {
-                found = true;
-
-                auto backup = (*outer)[pos];
-                (*outer)[pos] = (*inner)[pos];
-                auto score = solve(input);
-
-                smudges.emplace_back(outer_row, inner_row, pos, score);
-
-                /*println("Found diff in col {} between lines {} and {}, score: {}",
-                        pos+1, outer_row+1, inner_row+1, score);*/
-
-                (*outer)[pos] = backup;
+                break;
             }
         }
     }
 
-    if (not found)
+    return {diff_count, diff_pos};
+}
+
+u64 fix_smudge(vec<str>& input)
+{
+    Symm_Type og_symm {};
+    auto og_score = solve(input, &og_symm);
+
+    u64 rows = input.size();
+
+    println("========================================");
+    for (u64 ra = 0;
+         ra < rows - 1;
+         ++ra)
     {
-        int s = 0;
-        print_puzzle(input);
-        throw "Cannot find two rows with exactly one smudge :(";
+        println("Checking row {}", ra + 1);
+        auto& row_a = input.at(ra);
+
+        for (u64 rb = ra + 1;
+             rb < rows;
+             ++rb)
+        {
+            println("  against row {}", rb + 1);
+
+            auto& row_b = input.at(rb);
+
+            auto [diff_count, diff_pos] = count_diff(row_a, row_b);
+
+            if (diff_count == 1)
+            {
+                println("  rows differs by 1 char");
+
+                auto backup = row_b.at(diff_pos);
+                row_b.at(diff_pos) = row_b.at(diff_pos);
+
+                try
+                {
+                    Symm_Type new_symm {};
+                    auto new_score = solve(input, &new_symm);
+
+                    if (new_score != og_score)
+                    {
+                        println("  found, score is: {}", new_score);
+                        return new_score;
+                    }
+                    else
+                    {
+                        println("  same score...");
+                    }
+                }
+                catch (...)
+                {
+                    // no symmetry, continue...
+                    int s = 0;
+                }
+
+                row_b.at(diff_pos) = backup;
+            }
+        }
     }
 
-    std::sort(smudges.begin(), smudges.end(), 
-              [](const Smudge& a, const Smudge& b) 
-    {
-        return a.score > b.score;
-    });
-   
-    return smudges.begin()->score;
+    println("*****************************");
+    println("NOT FOUND!");
+    println("og symm <{}>, og score <{}>", to_str(og_symm), og_score);
+    print_puzzle(input);
+    return 0;
 }
 
 u64 part2()
