@@ -313,26 +313,24 @@ pair<u64, u64> count_diff(str_cref a, str_cref b)
     return {diff_count, diff_pos};
 }
 
-u64 fix_smudge(vec<str>& input)
+u64 fix_smudge_helper(vec<str>& input, u64 og_score, bool* found = nullptr)
 {
-    Symm_Type og_symm {};
-    auto og_score = solve(input, &og_symm);
+    println("\n========================================");
+    print_puzzle(input);
 
     u64 rows = input.size();
-
-    println("========================================");
     for (u64 ra = 0;
-         ra < rows - 1;
+         ra < rows-1;
          ++ra)
     {
         println("Checking row {}", ra + 1);
         auto& row_a = input.at(ra);
 
-        for (u64 rb = ra + 1;
+        for (u64 rb = ra+1;
              rb < rows;
              ++rb)
         {
-            println("  against row {}", rb + 1);
+            //println("  against row {}", rb + 1);
 
             auto& row_b = input.at(rb);
 
@@ -340,24 +338,28 @@ u64 fix_smudge(vec<str>& input)
 
             if (diff_count == 1)
             {
-                println("  rows differs by 1 char");
+                println("  found diff between row {} and row {} in pos {}",
+                        ra + 1, rb + 1, diff_pos + 1);
 
-                auto backup = row_b.at(diff_pos);
-                row_b.at(diff_pos) = row_b.at(diff_pos);
+                auto backup = row_a.at(diff_pos);
+                row_a.at(diff_pos) = row_b.at(diff_pos);
 
                 try
                 {
                     Symm_Type new_symm {};
                     auto new_score = solve(input, &new_symm);
 
-                    if (new_score != og_score)
+                    if (true 
+                        or 
+                        (new_score != og_score))
                     {
-                        println("  found, score is: {}", new_score);
-                        return new_score;
+                        *found = true;
+                        println("  new score is: {}" ,new_score);
+                        return diff_pos;
                     }
                     else
                     {
-                        println("  same score...");
+                        //println("  same score...");
                     }
                 }
                 catch (...)
@@ -366,16 +368,43 @@ u64 fix_smudge(vec<str>& input)
                     int s = 0;
                 }
 
-                row_b.at(diff_pos) = backup;
+                row_a.at(diff_pos) = backup;
             }
+
         }
     }
 
-    println("*****************************");
-    println("NOT FOUND!");
-    println("og symm <{}>, og score <{}>", to_str(og_symm), og_score);
-    print_puzzle(input);
     return 0;
+}
+
+u64 fix_smudge(vec<str>& input)
+{
+    Symm_Type og_symm {};
+    auto og_score = solve(input, &og_symm);
+
+    bool h_found = false;
+    auto h_score = fix_smudge_helper(input, og_score, &h_found);
+
+    auto t_input = transpose(input);
+    bool v_found = false;
+    auto v_score = fix_smudge_helper(t_input, og_score, &v_found);
+
+    
+    if ((not h_found)
+        and
+        (not v_found)
+        )
+    {
+        println("\n\n*****************************");
+        println("NOT FOUND!");
+        println("og symm <{}>, og score <{}>", to_str(og_symm), og_score);
+        print_puzzle(input);
+        print_puzzle(transpose(input));
+
+        int s = 0;
+    }
+
+    return ((h_score + 1) * 100) + (v_score + 1);
 }
 
 u64 part2()
@@ -385,7 +414,8 @@ u64 part2()
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-    auto input = str(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    auto input = str(std::istreambuf_iterator<char>(ifs), 
+                     std::istreambuf_iterator<char>());
 
     u64 acc = 0;
     for (auto& block : split_string(input, "\n\n"))
@@ -395,7 +425,7 @@ u64 part2()
     }
 
     u64 res = acc;
-    return res;
+    return res; 
 }
 
 int main()
