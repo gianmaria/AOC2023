@@ -248,19 +248,7 @@ u64 solve(const vec<str>& input)
     auto t_input = transpose(input);
     auto v_symmetry = check_symmetry(t_input);
 
-    if (h_symmetry != 0)
-    {
-        return h_symmetry * 100;
-    }
-    else if (v_symmetry != 0)
-    {
-        return v_symmetry;
-    }
-    else
-    {
-        throw "Unreachable code!";
-        return 0;
-    }
+    return (h_symmetry * 100) + v_symmetry;
 }
 
 u64 part1()
@@ -270,7 +258,8 @@ u64 part1()
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-    auto input = str(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    auto input = str(std::istreambuf_iterator<char>(ifs), 
+                     std::istreambuf_iterator<char>());
 
     u64 acc = 0;
     for (auto& block : split_string(input, "\n\n"))
