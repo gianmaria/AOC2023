@@ -326,16 +326,6 @@ u64 find_smudge(const vec<str>& input)
     return 0;
 }
 
-u64 solve_smudge(const vec<str>& input)
-{
-    auto h_symmetry = find_smudge(input);
-
-    auto t_input = transpose(input);
-    auto v_symmetry = find_smudge(t_input);
-
-    return (h_symmetry * 100) + v_symmetry;
-}
-
 u64 part2()
 {
     auto file_path = "res\\input.txt";
@@ -350,7 +340,13 @@ u64 part2()
     for (auto& block : split_string(input, "\n\n"))
     {
         auto puzzle = split_string(block, "\n");
-        acc += solve_smudge(puzzle);
+        
+        auto h_symmetry = find_smudge(puzzle);
+
+        auto t_puzzle = transpose(puzzle);
+        auto v_symmetry = find_smudge(t_puzzle);
+
+        acc += (h_symmetry * 100) + v_symmetry;
     }
 
     u64 res = acc;
