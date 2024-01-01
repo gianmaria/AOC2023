@@ -241,23 +241,7 @@ u64 check_symmetry(const vec<str>& input)
     return pos;
 }
 
-enum class Symm_Type: u16
-{
-    none, horizontal, vertical
-};
-
-const char* to_str(const Symm_Type& type)
-{
-    switch (type)
-    {
-        case Symm_Type::none: return "none";
-        case Symm_Type::horizontal: return "horizontal";
-        case Symm_Type::vertical: return "vertical";
-        default: return "unknown symm";
-    }
-}
-
-u64 solve(const vec<str>& input, Symm_Type* symm_type = nullptr)
+u64 solve(const vec<str>& input)
 {
     auto h_symmetry = check_symmetry(input);
 
@@ -274,7 +258,7 @@ u64 part1()
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-    auto input = str(std::istreambuf_iterator<char>(ifs), 
+    auto input = str(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 
     u64 acc = 0;
@@ -289,10 +273,10 @@ u64 part1()
 }
 
 
-pair<u64, u64> count_diff(str_cref a, str_cref b)
+
+u64 diff_count(str_cref a, str_cref b)
 {
     u64 diff_count = 0;
-    u64 diff_pos = 0;
 
     for (u64 i = 0;
          i < a.length();
@@ -301,110 +285,63 @@ pair<u64, u64> count_diff(str_cref a, str_cref b)
         if (a.at(i) != b.at(i))
         {
             ++diff_count;
-            diff_pos = i;
-
-            if (diff_count > 1)
-            {
-                break;
-            }
         }
     }
 
-    return {diff_count, diff_pos};
+    return diff_count;
 }
 
-u64 fix_smudge_helper(vec<str>& input, u64 og_score, bool* found = nullptr)
+bool can_fold_with_one_fixed_smudge(const vec<str>& input, u64 r)
 {
-    println("\n========================================");
-    print_puzzle(input);
-
     u64 rows = input.size();
-    for (u64 ra = 0;
-         ra < rows-1;
-         ++ra)
+
+    i64 top = r;
+    u64 bottom = r + 1;
+
+    bool fixed_one = false;
+    while (top >= 0 and bottom < rows)
     {
-        println("Checking row {}", ra + 1);
-        auto& row_a = input.at(ra);
-
-        for (u64 rb = ra+1;
-             rb < rows;
-             ++rb)
+        if (input.at(top) != input.at(bottom))
         {
-            //println("  against row {}", rb + 1);
+            if (fixed_one)
+                return false;
+            else if (diff_count(input.at(top), input.at(bottom)) == 1)
+                fixed_one = true;
+            else
+                return false;
+        }
+        --top;
+        ++bottom;
+    }
 
-            auto& row_b = input.at(rb);
+    return fixed_one;
+}
 
-            auto [diff_count, diff_pos] = count_diff(row_a, row_b);
+u64 find_smudge(const vec<str>& input)
+{
+    u64 rows = input.size();
 
-            if (diff_count == 1)
-            {
-                println("  found diff between row {} and row {} in pos {}",
-                        ra + 1, rb + 1, diff_pos + 1);
-
-                auto backup = row_a.at(diff_pos);
-                row_a.at(diff_pos) = row_b.at(diff_pos);
-
-                try
-                {
-                    Symm_Type new_symm {};
-                    auto new_score = solve(input, &new_symm);
-
-                    if (true 
-                        or 
-                        (new_score != og_score))
-                    {
-                        *found = true;
-                        println("  new score is: {}" ,new_score);
-                        return diff_pos;
-                    }
-                    else
-                    {
-                        //println("  same score...");
-                    }
-                }
-                catch (...)
-                {
-                    // no symmetry, continue...
-                    int s = 0;
-                }
-
-                row_a.at(diff_pos) = backup;
-            }
-
+    for (u64 r = 0;
+         r < rows;
+         ++r)
+    {
+        if (can_fold_with_one_fixed_smudge(input, r))
+        {
+            return r + 1;
         }
     }
 
     return 0;
 }
 
-u64 fix_smudge(vec<str>& input)
+u64 solve_smudge(const vec<str>& input)
 {
-    Symm_Type og_symm {};
-    auto og_score = solve(input, &og_symm);
-
-    bool h_found = false;
-    auto h_score = fix_smudge_helper(input, og_score, &h_found);
+    auto h_symmetry = find_smudge(input);
 
     auto t_input = transpose(input);
-    bool v_found = false;
-    auto v_score = fix_smudge_helper(t_input, og_score, &v_found);
+    auto v_symmetry = find_smudge(t_input);
 
-    
-    if ((not h_found)
-        and
-        (not v_found)
-        )
-    {
-        println("\n\n*****************************");
-        println("NOT FOUND!");
-        println("og symm <{}>, og score <{}>", to_str(og_symm), og_score);
-        print_puzzle(input);
-        print_puzzle(transpose(input));
-
-        int s = 0;
-    }
-
-    return ((h_score + 1) * 100) + (v_score + 1);
+    return (h_symmetry * 100) + v_symmetry;
 }
 
 u64 part2()
@@ -414,25 +351,25 @@ u64 part2()
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
 
-    auto input = str(std::istreambuf_iterator<char>(ifs), 
+    auto input = str(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 
     u64 acc = 0;
     for (auto& block : split_string(input, "\n\n"))
     {
         auto puzzle = split_string(block, "\n");
-        acc += fix_smudge(puzzle);
+        acc += solve_smudge(puzzle);
     }
 
     u64 res = acc;
-    return res; 
+    return res;
 }
 
 int main()
 {
     try
     {
-        //println("day 13 part 1: {}", part1());
+        println("day 13 part 1: {}", part1());
         println("day 13 part 2: {}", part2());
 
         return 0;
