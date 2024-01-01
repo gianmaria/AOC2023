@@ -201,19 +201,17 @@ bool can_fold(const vec<str>& input, u64 r)
     i64 top = r;
     u64 bottom = r + 1;
 
-    bool res = true;
     while (top >= 0 and bottom < rows)
     {
         if (input.at(top) != input.at(bottom))
         {
-            res = false;
-            break;
+            return false;
         }
         --top;
         ++bottom;
     }
 
-    return res;
+    return true;
 }
 
 u64 check_symmetry(const vec<str>& input)
@@ -223,7 +221,6 @@ u64 check_symmetry(const vec<str>& input)
     // NOTE: 
     // look for adjacent matching lines
     // then fold and check if all the overlapping lines matches
-    u64 pos = 0;
     for (u64 r = 0;
          r < rows - 1;
          ++r)
@@ -232,23 +229,12 @@ u64 check_symmetry(const vec<str>& input)
         {
             if (can_fold(input, r))
             {
-                pos = r + 1;
-                break;
+                return r + 1;
             }
         }
     }
 
-    return pos;
-}
-
-u64 solve(const vec<str>& input)
-{
-    auto h_symmetry = check_symmetry(input);
-
-    auto t_input = transpose(input);
-    auto v_symmetry = check_symmetry(t_input);
-
-    return (h_symmetry * 100) + v_symmetry;
+    return 0;
 }
 
 u64 part1()
@@ -265,7 +251,13 @@ u64 part1()
     for (auto& block : split_string(input, "\n\n"))
     {
         auto puzzle = split_string(block, "\n");
-        acc += solve(puzzle);
+        
+        auto h_symmetry = check_symmetry(puzzle);
+
+        auto t_puzzle = transpose(puzzle);
+        auto v_symmetry = check_symmetry(t_puzzle);
+
+        acc += (h_symmetry * 100) + v_symmetry;
     }
 
     u64 res = acc;
