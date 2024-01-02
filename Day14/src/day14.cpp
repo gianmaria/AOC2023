@@ -25,6 +25,9 @@
 #include <vector>
 #include <print>
 #include <optional>
+#include <chrono>
+#include <ctime>
+
 
 using u8 = uint8_t;
 using u16 = uint16_t;
@@ -230,9 +233,244 @@ u64 part1()
     return res;
 }
 
+template<typename T>
+u64 murmur64(const Matrix<T> m) 
+{
+    u64 h = 0;
+    for (const auto row : m)
+    {
+        for (char ch : row)
+        {
+            h += static_cast<u64>(ch);
+            h ^= h >> 33;
+            h *= 0xff51afd7ed558ccdL;
+            h ^= h >> 33;
+            h *= 0xc4ceb9fe1a85ec53L;
+            h ^= h >> 33;
+        }
+    }
+    
+    return h;
+}
+
+enum class Tilt:u16
+{
+    none, up, left, down, right
+};
+
+struct State
+{
+    u64 hash {0};
+    Tilt next_tilt {Tilt::none};
+};
+
+bool operator<(const State& a, const State& b)
+{
+    return a.hash < b.hash;
+}
+
+map<u64, Tilt> MEMO;
+
+template<typename T>
+void tilt_platform(Matrix<T>& matrix, Tilt direction)
+{
+    if (MEMO[murmur64(matrix)] == direction)
+    {
+        println("DUPLICATE!!");
+        return;
+    }
+    else
+    {
+        MEMO[murmur64(matrix)] = direction;
+    }
+
+    auto rows = matrix.size();
+    auto cols = matrix.at(0).size();
+
+    if (direction == Tilt::up)
+    {
+        for (i64 r = 1;
+             r < rows;
+             ++r)
+        {
+            for (i64 c = 0;
+                 c < cols;
+                 ++c)
+            {
+                if (matrix.at(r).at(c) == 'O')
+                {
+                    auto curr_row = r;
+                    while (curr_row > 0)
+                    {
+                        auto up_row = curr_row - 1;
+                        if (matrix.at(up_row).at(c) == '.')
+                        {
+                            matrix.at(up_row).at(c) = 'O';
+                            matrix.at(curr_row).at(c) = '.';
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                        --curr_row;
+                    }
+                }
+            }
+        }
+    }
+    else if (direction == Tilt::down)
+    {
+        for (i64 r = rows - 2;
+             r >= 0;
+             --r)
+        {
+            for (i64 c = 0;
+                 c < cols;
+                 ++c)
+            {
+                if (matrix.at(r).at(c) == 'O')
+                {
+                    auto curr_row = r;
+                    while (curr_row < rows - 1)
+                    {
+                        auto down_row = curr_row + 1;
+                        if (matrix.at(down_row).at(c) == '.')
+                        {
+                            matrix.at(down_row).at(c) = 'O';
+                            matrix.at(curr_row).at(c) = '.';
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                        ++curr_row;
+                    }
+                }
+            }
+        }
+
+    }
+    else if (direction == Tilt::left)
+    {
+        for (i64 c = 1;
+             c < cols;
+             ++c)
+        {
+            for (i64 r = 0;
+                 r < rows;
+                 ++r)
+            {
+                if (matrix.at(r).at(c) == 'O')
+                {
+                    auto curr_col = c;
+                    while (curr_col > 0)
+                    {
+                        auto left_col = curr_col - 1;
+                        if (matrix.at(r).at(left_col) == '.')
+                        {
+                            matrix.at(r).at(left_col) = 'O';
+                            matrix.at(r).at(curr_col) = '.';
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                        --curr_col;
+                    }
+                }
+            }
+        }
+    }
+    else if (direction == Tilt::right)
+    {
+        for (i64 c = cols - 2;
+             c >= 0;
+             --c)
+        {
+            for (i64 r = 0;
+                 r < rows;
+                 ++r)
+            {
+                if (matrix.at(r).at(c) == 'O')
+                {
+                    auto curr_col = c;
+                    while (curr_col < cols - 1)
+                    {
+                        auto right_col = curr_col + 1;
+                        if (matrix.at(r).at(right_col) == '.')
+                        {
+                            matrix.at(r).at(right_col) = 'O';
+                            matrix.at(r).at(curr_col) = '.';
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                        ++curr_col;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        throw "tilt none is not possible!";
+    }
+
+    //if (direction == Tilt::up)
+    //{
+    //    MEMO.emplace(State(djb2_hash(matrix), Tilt::left), true);
+    //}
+    //else if (direction == Tilt::left)
+    //{
+    //    MEMO.emplace(State(djb2_hash(matrix), Tilt::down), true);
+    //}
+    //else if (direction == Tilt::down)
+    //{
+    //    MEMO.emplace(State(djb2_hash(matrix), Tilt::right), true);
+    //}
+    //else if (direction == Tilt::right)
+    //{
+    //    MEMO.emplace(State(djb2_hash(matrix), Tilt::up), true);
+    //}
+    //else
+    //{
+    //    throw "cannot emplace in MEMO map tilt none!";
+    //}
+
+}
+
+void print_time()
+{
+    // Get the current time point
+    auto currentTimePoint = std::chrono::system_clock::now();
+
+    // Convert the time point to a time_t type
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(currentTimePoint);
+
+    // Declare a tm structure to store the local time
+    std::tm localTime;
+
+    // Use localtime_s for safer handling
+    if (localtime_s(&localTime, &currentTime) == 0) {
+        // Print the local time
+        char buffer[512];
+        if (strftime(buffer, sizeof(buffer), "%c %Z", &localTime) != 0) {
+            std::cout << "Current local time: " << buffer << std::endl;
+        }
+    } else {
+        // Handle error if localtime_s fails
+        std::cerr << "Error getting local time." << std::endl;
+    }
+}
+
 u64 part2()
 {
-    auto file_path = "res\\input.txt";
+    auto file_path = "res\\test.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
@@ -240,10 +478,43 @@ u64 part2()
     auto input = str(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 
-    u64 acc = 0;
-    for (auto& block : split_string(input, "\n\n"))
-    {
+    Matrix<char> matrix;
 
+    // read input
+    for (auto& line : split_string(input, "\n"))
+    {
+        matrix.emplace_back(line.begin(), line.end());
+    }
+
+    print_time();
+
+    u64 cycles = 4;
+    print_matrix(matrix);
+    println("****************************************");
+    for (u64 cycle = 0;
+         cycle < cycles;
+         ++cycle)
+    {
+        //if (cycle % 1000000 == 0)
+        //    print(".");
+
+        for (const auto& tilt : {Tilt::up, Tilt::left, Tilt::down, Tilt::right})
+        {
+            tilt_platform(matrix, tilt);
+            print_matrix(matrix);
+            int s = 0;
+        }
+        println("===================================");
+    }
+    println("DONE!");
+    print_time();
+
+
+    u64 acc = 0;
+    for (auto [r, row] : views::enumerate(matrix))
+    {
+        auto occurrences = ranges::count(row, 'O');
+        acc += occurrences * (matrix.size() - r);
     }
 
     u64 res = acc;
