@@ -81,6 +81,20 @@ using vec = vector<T>;
 template<typename T>
 using Matrix = vec<vec<T>>;
 
+template<typename T>
+void print_matrix(const Matrix<T>& m)
+{
+    for (const auto& row : m)
+    {
+        for (const auto& elem : row)
+        {
+            print("{}", elem);
+        }
+        println("");
+    }
+    println("");
+}
+
 str read_file(const char* file_path)
 {
     auto ifs = std::ifstream(file_path);
@@ -173,16 +187,48 @@ u64 part1()
     auto input = str(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 
-    u64 acc = 0;
-    for (auto& block : split_string(input, "\n\n"))
+    Matrix<char> matrix;
+
+    for (auto& line : split_string(input, "\n"))
     {
-        
+        matrix.emplace_back(line.begin(), line.end());
+    }
+
+    for (auto [r, row] : views::enumerate(matrix))
+    {
+        for (auto [c, col] : views::enumerate(row))
+        {
+            if (matrix.at(r).at(c) == 'O')
+            {
+                auto curr_row = r;
+                while (curr_row > 0)
+                {
+                    if (matrix.at(curr_row - 1).at(c) == '.')
+                    {
+                        matrix.at(curr_row - 1).at(c) = 'O';
+                        matrix.at(curr_row).at(c) = '.';
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    --curr_row;
+                }
+            }
+        }
+    }
+
+    u64 acc = 0;
+    for (auto [r, row] : views::enumerate(matrix))
+    {
+        auto occurrences = ranges::count(row, 'O');
+        acc += occurrences * (matrix.size() - r);
     }
 
     u64 res = acc;
     return res;
 }
-
 
 u64 part2()
 {
@@ -197,7 +243,7 @@ u64 part2()
     u64 acc = 0;
     for (auto& block : split_string(input, "\n\n"))
     {
-        
+
     }
 
     u64 res = acc;
