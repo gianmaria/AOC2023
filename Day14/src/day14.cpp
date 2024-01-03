@@ -165,6 +165,22 @@ static inline bool is_between(T num, T min, T max)
     return (num >= min) and (num <= max);
 }
 
+str get_time()
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t time = std::chrono::system_clock::to_time_t(now);
+    std::tm local_time;
+
+    if (localtime_s(&local_time, &time) == 0)
+    {
+        char buffer[512] {};
+        if (strftime(buffer, sizeof(buffer), "%H:%M:%S", &local_time) != 0)
+        {
+            return {buffer};
+        }
+    }
+    return "";
+}
 
 // ==============================================
 // ==============================================
@@ -178,7 +194,6 @@ static inline bool is_between(T num, T min, T max)
 //                                    
 // ==============================================
 // ==============================================
-
 
 u64 part1()
 {
@@ -234,6 +249,16 @@ u64 part1()
 }
 
 template<typename T>
+str stringify(const Matrix<T> m)
+{
+    auto concat = [](str_cref acc, const vec<char>& row)
+    {
+        return acc + str(row.begin(), row.end());
+    };
+    return std::accumulate(m.begin(), m.end(), str(), concat);
+}
+
+template<typename T>
 u64 murmur64(const Matrix<T> m) 
 {
     u64 h = 0;
@@ -249,228 +274,174 @@ u64 murmur64(const Matrix<T> m)
             h ^= h >> 33;
         }
     }
-    
+
     return h;
 }
 
-enum class Tilt:u16
-{
-    none, up, left, down, right
-};
-
-struct State
-{
-    u64 hash {0};
-    Tilt next_tilt {Tilt::none};
-};
-
-bool operator<(const State& a, const State& b)
-{
-    return a.hash < b.hash;
-}
-
-map<u64, Tilt> MEMO;
-
 template<typename T>
-void tilt_platform(Matrix<T>& matrix, Tilt direction)
+void perform_full_tilt(Matrix<T>& matrix)
 {
-    if (MEMO[murmur64(matrix)] == direction)
-    {
-        println("DUPLICATE!!");
-        return;
-    }
-    else
-    {
-        MEMO[murmur64(matrix)] = direction;
-    }
-
     auto rows = matrix.size();
     auto cols = matrix.at(0).size();
 
-    if (direction == Tilt::up)
+    // tilt up
+    for (i64 r = 1;
+         r < rows;
+         ++r)
     {
-        for (i64 r = 1;
-             r < rows;
-             ++r)
-        {
-            for (i64 c = 0;
-                 c < cols;
-                 ++c)
-            {
-                if (matrix.at(r).at(c) == 'O')
-                {
-                    auto curr_row = r;
-                    while (curr_row > 0)
-                    {
-                        auto up_row = curr_row - 1;
-                        if (matrix.at(up_row).at(c) == '.')
-                        {
-                            matrix.at(up_row).at(c) = 'O';
-                            matrix.at(curr_row).at(c) = '.';
-                        }
-                        else
-                        {
-                            break;
-                        }
-
-                        --curr_row;
-                    }
-                }
-            }
-        }
-    }
-    else if (direction == Tilt::down)
-    {
-        for (i64 r = rows - 2;
-             r >= 0;
-             --r)
-        {
-            for (i64 c = 0;
-                 c < cols;
-                 ++c)
-            {
-                if (matrix.at(r).at(c) == 'O')
-                {
-                    auto curr_row = r;
-                    while (curr_row < rows - 1)
-                    {
-                        auto down_row = curr_row + 1;
-                        if (matrix.at(down_row).at(c) == '.')
-                        {
-                            matrix.at(down_row).at(c) = 'O';
-                            matrix.at(curr_row).at(c) = '.';
-                        }
-                        else
-                        {
-                            break;
-                        }
-
-                        ++curr_row;
-                    }
-                }
-            }
-        }
-
-    }
-    else if (direction == Tilt::left)
-    {
-        for (i64 c = 1;
+        for (i64 c = 0;
              c < cols;
              ++c)
         {
-            for (i64 r = 0;
-                 r < rows;
-                 ++r)
+            if (matrix.at(r).at(c) == 'O')
             {
-                if (matrix.at(r).at(c) == 'O')
+                auto curr_row = r;
+                while (curr_row > 0)
                 {
-                    auto curr_col = c;
-                    while (curr_col > 0)
+                    auto up_row = curr_row - 1;
+                    if (matrix.at(up_row).at(c) == '.')
                     {
-                        auto left_col = curr_col - 1;
-                        if (matrix.at(r).at(left_col) == '.')
-                        {
-                            matrix.at(r).at(left_col) = 'O';
-                            matrix.at(r).at(curr_col) = '.';
-                        }
-                        else
-                        {
-                            break;
-                        }
-
-                        --curr_col;
+                        matrix.at(up_row).at(c) = 'O';
+                        matrix.at(curr_row).at(c) = '.';
                     }
+                    else
+                    {
+                        break;
+                    }
+
+                    --curr_row;
                 }
             }
         }
     }
-    else if (direction == Tilt::right)
+
+    // tilt left
+    for (i64 c = 1;
+         c < cols;
+         ++c)
     {
-        for (i64 c = cols - 2;
-             c >= 0;
-             --c)
+        for (i64 r = 0;
+             r < rows;
+             ++r)
         {
-            for (i64 r = 0;
-                 r < rows;
-                 ++r)
+            if (matrix.at(r).at(c) == 'O')
             {
-                if (matrix.at(r).at(c) == 'O')
+                auto curr_col = c;
+                while (curr_col > 0)
                 {
-                    auto curr_col = c;
-                    while (curr_col < cols - 1)
+                    auto left_col = curr_col - 1;
+                    if (matrix.at(r).at(left_col) == '.')
                     {
-                        auto right_col = curr_col + 1;
-                        if (matrix.at(r).at(right_col) == '.')
-                        {
-                            matrix.at(r).at(right_col) = 'O';
-                            matrix.at(r).at(curr_col) = '.';
-                        }
-                        else
-                        {
-                            break;
-                        }
-
-                        ++curr_col;
+                        matrix.at(r).at(left_col) = 'O';
+                        matrix.at(r).at(curr_col) = '.';
                     }
+                    else
+                    {
+                        break;
+                    }
+
+                    --curr_col;
                 }
             }
         }
     }
-    else
+
+    // tilt down
+    for (i64 r = rows - 2;
+         r >= 0;
+         --r)
     {
-        throw "tilt none is not possible!";
+        for (i64 c = 0;
+             c < cols;
+             ++c)
+        {
+            if (matrix.at(r).at(c) == 'O')
+            {
+                auto curr_row = r;
+                while (curr_row < rows - 1)
+                {
+                    auto down_row = curr_row + 1;
+                    if (matrix.at(down_row).at(c) == '.')
+                    {
+                        matrix.at(down_row).at(c) = 'O';
+                        matrix.at(curr_row).at(c) = '.';
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    ++curr_row;
+                }
+            }
+        }
     }
 
-    //if (direction == Tilt::up)
-    //{
-    //    MEMO.emplace(State(djb2_hash(matrix), Tilt::left), true);
-    //}
-    //else if (direction == Tilt::left)
-    //{
-    //    MEMO.emplace(State(djb2_hash(matrix), Tilt::down), true);
-    //}
-    //else if (direction == Tilt::down)
-    //{
-    //    MEMO.emplace(State(djb2_hash(matrix), Tilt::right), true);
-    //}
-    //else if (direction == Tilt::right)
-    //{
-    //    MEMO.emplace(State(djb2_hash(matrix), Tilt::up), true);
-    //}
-    //else
-    //{
-    //    throw "cannot emplace in MEMO map tilt none!";
-    //}
+    // tilt right
+    for (i64 c = cols - 2;
+         c >= 0;
+         --c)
+    {
+        for (i64 r = 0;
+             r < rows;
+             ++r)
+        {
+            if (matrix.at(r).at(c) == 'O')
+            {
+                auto curr_col = c;
+                while (curr_col < cols - 1)
+                {
+                    auto right_col = curr_col + 1;
+                    if (matrix.at(r).at(right_col) == '.')
+                    {
+                        matrix.at(r).at(right_col) = 'O';
+                        matrix.at(r).at(curr_col) = '.';
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    ++curr_col;
+                }
+            }
+        }
+    }
 
 }
 
-void print_time()
+template<typename T>
+auto find_cycle(Matrix<T>& matrix)
 {
-    // Get the current time point
-    auto currentTimePoint = std::chrono::system_clock::now();
+    using matrix_hash = u64;
+    using tilt_num = u64;
+    map<matrix_hash, tilt_num> GRIDS;
 
-    // Convert the time point to a time_t type
-    std::time_t currentTime = std::chrono::system_clock::to_time_t(currentTimePoint);
+    u64 tilt_counter = 1;
+    while (true)
+    {
+        perform_full_tilt(matrix);
+        auto hash = murmur64(matrix);
 
-    // Declare a tm structure to store the local time
-    std::tm localTime;
-
-    // Use localtime_s for safer handling
-    if (localtime_s(&localTime, &currentTime) == 0) {
-        // Print the local time
-        char buffer[512];
-        if (strftime(buffer, sizeof(buffer), "%c %Z", &localTime) != 0) {
-            std::cout << "Current local time: " << buffer << std::endl;
+        if (GRIDS.contains(hash))
+        {
+            // we found our cycle
+            u64 cycle_len = tilt_counter - GRIDS[hash];
+            return std::make_tuple(tilt_counter, cycle_len);
         }
-    } else {
-        // Handle error if localtime_s fails
-        std::cerr << "Error getting local time." << std::endl;
+        else
+        {
+            GRIDS[hash] = tilt_counter;
+            ++tilt_counter;
+        }
     }
 }
 
 u64 part2()
 {
-    auto file_path = "res\\test.txt";
+    // with the help of: https://www.youtube.com/watch?v=BBgflSmf0a0
+
+    auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
@@ -486,29 +457,18 @@ u64 part2()
         matrix.emplace_back(line.begin(), line.end());
     }
 
-    print_time();
+    auto [tilt_counter, cycle_len] = find_cycle(matrix);
 
-    u64 cycles = 4;
-    print_matrix(matrix);
-    println("****************************************");
-    for (u64 cycle = 0;
-         cycle < cycles;
-         ++cycle)
+    const u64 cycles_to_perform = 1'000'000'000;
+    const u64 tilt_wo_cycles = tilt_counter - cycle_len;
+    const u64 num_cycles = (cycles_to_perform - tilt_wo_cycles) / cycle_len;
+    i64 cycles_left_to_perform = cycles_to_perform - tilt_wo_cycles - (cycle_len * num_cycles);
+    
+    while (cycles_left_to_perform > 0)
     {
-        //if (cycle % 1000000 == 0)
-        //    print(".");
-
-        for (const auto& tilt : {Tilt::up, Tilt::left, Tilt::down, Tilt::right})
-        {
-            tilt_platform(matrix, tilt);
-            print_matrix(matrix);
-            int s = 0;
-        }
-        println("===================================");
+        perform_full_tilt(matrix);
+        --cycles_left_to_perform;
     }
-    println("DONE!");
-    print_time();
-
 
     u64 acc = 0;
     for (auto [r, row] : views::enumerate(matrix))
