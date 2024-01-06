@@ -202,13 +202,26 @@ enum class Direction
     none, left, right, up, down
 };
 
+const char* to_str(Direction dir)
+{
+    switch (dir)
+    {
+        case Direction::none: return "none";
+        case Direction::left: return "left";
+        case Direction::right: return "right";
+        case Direction::up: return "up";
+        case Direction::down: return "down";
+        default: return "???";
+    }
+}
+
 auto INF = std::numeric_limits<float>::infinity();
 struct Vertex
 {
     i64 r {-1};
     i64 c {-1};
     float dist {INF};
-    Vertex* prev {nullptr};
+    vector<Vertex*> prev;
     Direction dir {Direction::none};
 };
 
@@ -324,12 +337,19 @@ void dijkstra(const Matrix<T>& graph,
         Q.pop_back();
 
         if (*u == *target)
+        {
+            println("\nSTOP!");
             break;
+        }
+
+        println("u is ({}, {}) dist: {}", u->r, u->c, u->dist);
 
         for (Vertex* v : get_neighbors_still_in_Q(Q, u, direction))
         {
             float weight_v = graph.at(v->r).at(v->c);
             float alt = u->dist + weight_v;
+
+            print("  checking v ({}, {})", v->r, v->c);
 
             if (alt < v->dist)
             {
@@ -346,10 +366,28 @@ void dijkstra(const Matrix<T>& graph,
                 else
                     int s = 0;
 
+                print(" updating dist to {}, direction {}", alt, to_str(direction));
 
+                v->dist = alt;
+                v->prev.push_back(u);
                 v->dir = direction;
             }
+
+            println("");
         }
+
+        int s = 0;
+        /*if (blocks < 3)
+        {
+            v->dist = alt;
+            v->prev.push_back(u);
+            v->dir = direction;
+
+            if (v->prev.size() > 1)
+            {
+                int s = 0;
+            }
+        }*/
 
     }
 
@@ -368,21 +406,23 @@ auto find_shortest_path(const vec<Vertex>& prev,
     });
     const Vertex* src = &(*it_src);
 
-    //const Vertex* u = &(*std::find(prev.begin(), prev.end(), *target));
     auto it_u = ranges::find_if(prev, [&](const Vertex& elem)
     {
         return *target == elem;
     });
     const Vertex* u = &(*it_u);
 
-    if (u->prev != nullptr
+    if ((u->prev.size() > 0 and u->prev[0] != nullptr)
         or
         *u == *src)
     {
         while (u != nullptr)
         {
             S.push(u);
-            u = u->prev;
+            if (u->prev.size() > 0)
+                u = u->prev[0];
+            else
+                u = nullptr;
         }
     }
 
@@ -418,7 +458,7 @@ u64 part1()
     {
         for (auto [c, col] : views::enumerate(row))
         {
-            vertices.emplace_back(r, c, INF, nullptr);
+            vertices.emplace_back(r, c, INF, vec<Vertex*>(), Direction::none);
         }
     }
 
@@ -466,7 +506,7 @@ u64 part1()
     }
     cout << endl;
 
-    u64 acc = 0;
+    u64 acc = heat_loss;
     u64 res = acc;
     return res;
 }
