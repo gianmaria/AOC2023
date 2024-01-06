@@ -221,8 +221,9 @@ struct Vertex
     i64 r {-1};
     i64 c {-1};
     float dist {INF};
-    vector<Vertex*> prev;
+    Vertex* prev {nullptr};
     Direction dir {Direction::none};
+
 };
 
 bool operator==(const Vertex& a, const Vertex& b)
@@ -240,7 +241,7 @@ void dijkstra(const Matrix<T>& graph,
 {
 
     auto get_neighbors_still_in_Q = [&graph](vec<Vertex*>& Q,
-                                             const Vertex* u, Direction from)
+                                             const Vertex* u, Direction from) -> vec<Vertex*>
     {
         vec<Vertex*> neighbors;
         const auto rows = graph.size();
@@ -310,9 +311,6 @@ void dijkstra(const Matrix<T>& graph,
         return a->dist < b->dist;
     };
 
-
-
-
     vec<Vertex*> Q;
     Q.reserve(vertices.size());
 
@@ -337,19 +335,16 @@ void dijkstra(const Matrix<T>& graph,
         Q.pop_back();
 
         if (*u == *target)
-        {
-            println("\nSTOP!");
             break;
-        }
+        
+        //println("u is ({}, {}) dist: {}", u->r, u->c, u->dist);
 
-        println("u is ({}, {}) dist: {}", u->r, u->c, u->dist);
-
-        for (Vertex* v : get_neighbors_still_in_Q(Q, u, direction))
+        auto neighbors = get_neighbors_still_in_Q(Q, u, direction);
+        for (Vertex* v : neighbors)
         {
-            float weight_v = graph.at(v->r).at(v->c);
-            float alt = u->dist + weight_v;
+            float alt = u->dist + graph.at(v->r).at(v->c);
 
-            print("  checking v ({}, {})", v->r, v->c);
+            //print("  checking v ({}, {})", v->r, v->c);
 
             if (alt < v->dist)
             {
@@ -366,14 +361,14 @@ void dijkstra(const Matrix<T>& graph,
                 else
                     int s = 0;
 
-                print(" updating dist to {}, direction {}", alt, to_str(direction));
+                //print(" updating dist to {}, direction {}", alt, to_str(direction));
 
                 v->dist = alt;
-                v->prev.push_back(u);
+                v->prev = u;
                 v->dir = direction;
             }
 
-            println("");
+            //println("");
         }
 
         int s = 0;
@@ -412,17 +407,14 @@ auto find_shortest_path(const vec<Vertex>& prev,
     });
     const Vertex* u = &(*it_u);
 
-    if ((u->prev.size() > 0 and u->prev[0] != nullptr)
+    if (u->prev != nullptr
         or
         *u == *src)
     {
         while (u != nullptr)
         {
             S.push(u);
-            if (u->prev.size() > 0)
-                u = u->prev[0];
-            else
-                u = nullptr;
+            u = u->prev;
         }
     }
 
@@ -458,7 +450,7 @@ u64 part1()
     {
         for (auto [c, col] : views::enumerate(row))
         {
-            vertices.emplace_back(r, c, INF, vec<Vertex*>(), Direction::none);
+            vertices.emplace_back(r, c, INF, nullptr, Direction::none);
         }
     }
 
