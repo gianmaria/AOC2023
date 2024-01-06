@@ -310,7 +310,7 @@ void dijkstra(const Matrix<T>& graph,
 
     source->dist = 0.0f;
 
-    auto from = Direction::none;
+    auto direction = Direction::none;
     while (Q.size() > 0)
     {
         // vertex in Q with min u.dist
@@ -324,21 +324,7 @@ void dijkstra(const Matrix<T>& graph,
         if (*u == *target)
             break;
 
-        if (from != Direction::none)
-        {
-            if (u->prev->c < u->c)
-                from = Direction::right;
-            else if (u->prev->c > u->c)
-                from = Direction::left;
-            else if (u->prev->r < u->r)
-                from = Direction::up;
-            else if (u->prev->r > u->r)
-                from = Direction::down;
-            else
-                int s = 0;
-        }
-
-        for (Vertex* v : get_neighbors_still_in_Q(Q, u, from))
+        for (Vertex* v : get_neighbors_still_in_Q(Q, u, direction))
         {
             float weight_v = graph.at(v->r).at(v->c);
             float alt = u->dist + weight_v;
@@ -347,6 +333,21 @@ void dijkstra(const Matrix<T>& graph,
             {
                 v->dist = alt;
                 v->prev = u;
+
+
+                if (u->c < v->c)
+                    direction = Direction::right;
+                else if (u->c > v->c)
+                    direction = Direction::left;
+                else if (u->r < v->r)
+                    direction = Direction::down;
+                else if (u->r > v->r)
+                    direction = Direction::up;
+                else
+                    int s = 0;
+
+
+                v->dir = direction;
             }
         }
 
@@ -431,8 +432,25 @@ u64 part1()
 
     while (not shortest_path.empty())
     {
-        auto& v = shortest_path.top();
-        route.at(v->r).at(v->c) = '#';
+        auto v = shortest_path.top();
+        //route.at(v->r).at(v->c) = '#';
+        switch (v->dir)
+        {
+            case Direction::up:
+            route.at(v->r).at(v->c) = '^';
+            break;
+            case Direction::down:
+            route.at(v->r).at(v->c) = 'v';
+            break;
+            case Direction::left:
+            route.at(v->r).at(v->c) = '<';
+            break;
+            case Direction::right:
+            route.at(v->r).at(v->c) = '>';
+            break;
+            default:
+            route.at(v->r).at(v->c) = '#';
+        }
         shortest_path.pop();
     }
 
