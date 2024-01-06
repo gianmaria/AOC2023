@@ -430,9 +430,11 @@ u64 part1()
 
     auto route = Matrix<char>(rows, vec<char>(cols, '.'));
 
+    float heat_loss = 0.0f;
     while (not shortest_path.empty())
     {
         auto v = shortest_path.top();
+        heat_loss = v->dist;
         //route.at(v->r).at(v->c) = '#';
         switch (v->dir)
         {
