@@ -197,147 +197,183 @@ str get_time()
 // ==============================================
 
 
-auto INF = std::numeric_limits<float>::infinity();
+enum class Direction
+{
+    none, left, right, up, down
+};
 
+auto INF = std::numeric_limits<float>::infinity();
 struct Vertex
 {
-    i64 x {-1};
-    i64 y {-1};
+    i64 c {-1};
+    i64 r {-1};
     float dist {INF};
     Vertex* prev {nullptr};
+    Direction dir {Direction::none};
 };
 
 bool operator==(const Vertex& a, const Vertex& b)
 {
-    return a.x == b.x and a.y == b.y;
+    return (a.c == b.c) and (a.r == b.r);
 }
 
-//bool operator<(const Vertex& a, const Vertex& b)
-//{
-//    return a.dist < b.dist;
-//}
 
-auto UNDEFINED = Vertex {-1, -1};
+
 
 template<typename T>
-vec<Vertex> dijkstra(const Matrix<T>& graph,
-                     const Vertex& source, const Vertex& target)
+void dijkstra(const Matrix<T>& graph,
+              vec<Vertex>& vertices,
+              Vertex* source, Vertex* target)
 {
-    struct Comparator
-    {
-        bool operator()(const Vertex* a, const Vertex* b) const
-        {
-            return a->dist < b->dist;
-        }
-    };
 
-    auto neighbors = [](const Vertex* u,
-                        const Matrix<T>& graph,
-                        vec<Vertex>& vertices) -> vec<Vertex*>
+    auto get_neighbors_still_in_Q = [&graph](vec<Vertex*>& Q,
+                                             const Vertex* u, Direction from)
     {
         vec<Vertex*> neighbors;
         const auto rows = graph.size();
         const auto cols = graph.at(0).size();
 
-        if (u->x - 1 >= 0)
+        // left
+        if (u->c - 1 >= 0
+            and
+            from != Direction::right)
         {
-            auto it = std::find(vertices.begin(),
-                                vertices.end(),
-                                Vertex(u->x - 1, u->y));
-            neighbors.push_back(&(*it));
+            auto target = Vertex(u->c - 1, u->r);
+            auto it = ranges::find_if(Q, [&target](const Vertex* elem)
+            {
+                return target == *elem;
+            });
+            if (it != Q.end())
+                neighbors.push_back(*it);
         }
 
-        if (u->x + 1 < cols)
+        // right
+        if (u->c + 1 < cols
+            and
+            from != Direction::left)
         {
-            auto it = std::find(vertices.begin(),
-                                vertices.end(),
-                                Vertex(u->x + 1, u->y));
-            neighbors.push_back(&(*it));
+            auto target = Vertex(u->c + 1, u->r);
+            auto it = ranges::find_if(Q, [&target](const Vertex* elem)
+            {
+                return target == *elem;
+            });
+            if (it != Q.end())
+                neighbors.push_back(*it);
         }
 
-        if (u->y - 1 >= 0)
+        // up
+        if (u->r - 1 >= 0
+            and
+            from != Direction::down)
         {
-            auto it = std::find(vertices.begin(),
-                                vertices.end(),
-                                Vertex(u->x, u->y - 1));
-            neighbors.push_back(&(*it));
+            auto target = Vertex(u->c, u->r - 1);
+            auto it = ranges::find_if(Q, [&target](const Vertex* elem)
+            {
+                return target == *elem;
+            });
+            if (it != Q.end())
+                neighbors.push_back(*it);
         }
 
-        if (u->y + 1 < rows)
+        // down
+        if (u->r + 1 < rows
+            and
+            from != Direction::up)
         {
-            auto it = std::find(vertices.begin(),
-                                vertices.end(),
-                                Vertex(u->x, u->y + 1));
-            neighbors.push_back(&(*it));
+            auto target = Vertex(u->c, u->r + 1);
+            auto it = ranges::find_if(Q, [&target](const Vertex* elem)
+            {
+                return target == *elem;
+            });
+            if (it != Q.end())
+                neighbors.push_back(*it);
         }
 
         return neighbors;
     };
 
-    vec<Vertex> vertices;
-    vertices.reserve((graph.size() * graph.at(0).size()) + 1);
-
-    std::multiset<Vertex*, Comparator> Q;
-
-    for (auto [y, row] : views::enumerate(graph))
+    auto min_dist_vertex = [](const Vertex* a, const Vertex* b)
     {
-        for (auto [x, col] : views::enumerate(row))
-        {
-            vertices.emplace_back(x, y, INF, nullptr);
-            Q.insert(&vertices.back());
-        }
+        return a->dist < b->dist;
+    };
+
+
+
+
+    vec<Vertex*> Q;
+    Q.reserve(vertices.size());
+
+    for (Vertex& vertex : vertices)
+    {
+        Q.push_back(&vertex);
     }
 
-    {
-        auto it = std::find(vertices.begin(), vertices.end(), source);
-        auto ex = Q.extract(&(*it));
-        ex.value()->dist = 0.0f;
-        Q.insert(std::move(ex));
-    }
+    source->dist = 0.0f;
 
-    while (not Q.empty())
+    auto from = Direction::none;
+    while (Q.size() > 0)
     {
         // vertex in Q with min u.dist
-        Vertex* u = *Q.begin();
-        Q.erase(Q.begin());
+        auto it = ranges::min_element(Q, min_dist_vertex);
 
-        if (*u == target)
+        Vertex* u = *it;
+
+        std::swap(*it, *(Q.end() - 1));
+        Q.pop_back();
+
+        if (*u == *target)
             break;
 
-        for (Vertex* v : neighbors(u, graph, vertices))
+        if (from != Direction::none)
         {
-            if (Q.find(v) == Q.end())
-            {
-                // if v is not in Q, continue
-                continue;
-            }
+            if (u->prev->c < u->c)
+                from = Direction::right;
+            else if (u->prev->c > u->c)
+                from = Direction::left;
+            else if (u->prev->r < u->r)
+                from = Direction::up;
+            else if (u->prev->r > u->r)
+                from = Direction::down;
+            else
+                int s = 0;
+        }
 
-            float alt = u->dist + graph.at(v->y).at(v->x);
+        for (Vertex* v : get_neighbors_still_in_Q(Q, u, from))
+        {
+            float weight_v = graph.at(v->r).at(v->c);
+            float alt = u->dist + weight_v;
 
             if (alt < v->dist)
             {
-                auto it = std::find(vertices.begin(), vertices.end(), *v);
-                auto ex = Q.extract(&(*it));
-                ex.value()->dist = alt;
-                ex.value()->prev = u;
-                Q.insert(std::move(ex));
+                v->dist = alt;
+                v->prev = u;
             }
         }
 
     }
 
     int s = 0;
-    return vertices;
 }
 
-auto shortestPath(const vec<Vertex>& prev,
-                  const Vertex& source,
-                  const Vertex& target) -> std::stack<const Vertex*>
+auto find_shortest_path(const vec<Vertex>& prev,
+                        const Vertex* source,
+                        const Vertex* target) -> std::stack<const Vertex*>
 {
     std::stack<const Vertex*> S;
 
-    const Vertex* u = &(*std::find(prev.begin(), prev.end(), target));
-    const Vertex* src = &(*std::find(prev.begin(), prev.end(), source));
+    auto it_src = ranges::find_if(prev, [&](const Vertex& elem)
+    {
+        return *source == elem;
+    });
+    const Vertex* src = &(*it_src);
+
+    //const Vertex* u = &(*std::find(prev.begin(), prev.end(), *target));
+    auto it_u = ranges::find_if(prev, [&](const Vertex& elem)
+    {
+        return *target == elem;
+    });
+    const Vertex* u = &(*it_u);
+
     if (u->prev != nullptr
         or
         *u == *src)
@@ -375,15 +411,28 @@ u64 part1()
     const auto rows = heatmap.size();
     const auto cols = heatmap.at(0).size();
 
-    auto vertices = dijkstra(heatmap, {0,0}, Vertex(cols - 1, rows - 1));
-    auto shortest_path = shortestPath(vertices, {0,0}, Vertex(cols - 1, rows - 1));
+    vec<Vertex> vertices;
+    vertices.reserve(rows * cols);
+    for (auto [y, row] : views::enumerate(heatmap))
+    {
+        for (auto [x, col] : views::enumerate(row))
+        {
+            vertices.emplace_back(x, y, INF, nullptr);
+        }
+    }
+
+    Vertex* source = &vertices.front();
+    Vertex* target = &vertices.back();
+    dijkstra(heatmap, vertices, source, target);
+
+    auto shortest_path = find_shortest_path(vertices, source, target);
 
     auto route = Matrix<char>(rows, vec<char>(cols, '.'));
 
     while (not shortest_path.empty())
     {
         auto& v = shortest_path.top();
-        route.at(v->y).at(v->x) = '#';
+        route.at(v->r).at(v->c) = '#';
         shortest_path.pop();
     }
 
