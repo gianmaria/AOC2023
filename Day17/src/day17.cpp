@@ -205,8 +205,8 @@ enum class Direction
 auto INF = std::numeric_limits<float>::infinity();
 struct Vertex
 {
-    i64 c {-1};
     i64 r {-1};
+    i64 c {-1};
     float dist {INF};
     Vertex* prev {nullptr};
     Direction dir {Direction::none};
@@ -238,7 +238,7 @@ void dijkstra(const Matrix<T>& graph,
             and
             from != Direction::right)
         {
-            auto target = Vertex(u->c - 1, u->r);
+            auto target = Vertex(u->r, u->c - 1);
             auto it = ranges::find_if(Q, [&target](const Vertex* elem)
             {
                 return target == *elem;
@@ -252,7 +252,7 @@ void dijkstra(const Matrix<T>& graph,
             and
             from != Direction::left)
         {
-            auto target = Vertex(u->c + 1, u->r);
+            auto target = Vertex(u->r, u->c + 1);
             auto it = ranges::find_if(Q, [&target](const Vertex* elem)
             {
                 return target == *elem;
@@ -266,7 +266,7 @@ void dijkstra(const Matrix<T>& graph,
             and
             from != Direction::down)
         {
-            auto target = Vertex(u->c, u->r - 1);
+            auto target = Vertex(u->r - 1, u->c);
             auto it = ranges::find_if(Q, [&target](const Vertex* elem)
             {
                 return target == *elem;
@@ -280,7 +280,7 @@ void dijkstra(const Matrix<T>& graph,
             and
             from != Direction::up)
         {
-            auto target = Vertex(u->c, u->r + 1);
+            auto target = Vertex(u->r + 1, u->c);
             auto it = ranges::find_if(Q, [&target](const Vertex* elem)
             {
                 return target == *elem;
@@ -311,6 +311,8 @@ void dijkstra(const Matrix<T>& graph,
     source->dist = 0.0f;
 
     auto direction = Direction::none;
+    auto prev_direction = Direction::none;
+    u32 blocks = 0;
     while (Q.size() > 0)
     {
         // vertex in Q with min u.dist
@@ -331,9 +333,7 @@ void dijkstra(const Matrix<T>& graph,
 
             if (alt < v->dist)
             {
-                v->dist = alt;
-                v->prev = u;
-
+                prev_direction = direction;
 
                 if (u->c < v->c)
                     direction = Direction::right;
@@ -414,11 +414,11 @@ u64 part1()
 
     vec<Vertex> vertices;
     vertices.reserve(rows * cols);
-    for (auto [y, row] : views::enumerate(heatmap))
+    for (auto [r, row] : views::enumerate(heatmap))
     {
-        for (auto [x, col] : views::enumerate(row))
+        for (auto [c, col] : views::enumerate(row))
         {
-            vertices.emplace_back(x, y, INF, nullptr);
+            vertices.emplace_back(r, c, INF, nullptr);
         }
     }
 
