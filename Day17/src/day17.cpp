@@ -199,7 +199,7 @@ str get_time()
 
 enum class Direction
 {
-    none, left, right, up, down
+    up, down, left, right, none
 };
 
 const char* to_str(Direction dir)
@@ -239,7 +239,6 @@ void dijkstra(const Matrix<T>& graph,
               vec<Vertex>& vertices,
               Vertex* source, Vertex* target)
 {
-
     auto get_neighbors_still_in_Q = [&graph](vec<Vertex*>& Q,
                                              const Vertex* u, Direction from) -> vec<Vertex*>
     {
@@ -321,14 +320,10 @@ void dijkstra(const Matrix<T>& graph,
 
     source->dist = 0.0f;
 
-    auto direction = Direction::none;
-    auto prev_direction = Direction::none;
-    u32 blocks = 0;
     while (Q.size() > 0)
     {
         // vertex in Q with min u.dist
         auto it = ranges::min_element(Q, min_dist_vertex);
-
         Vertex* u = *it;
 
         std::swap(*it, *(Q.end() - 1));
@@ -336,57 +331,87 @@ void dijkstra(const Matrix<T>& graph,
 
         if (*u == *target)
             break;
-        
-        //println("u is ({}, {}) dist: {}", u->r, u->c, u->dist);
 
-        auto neighbors = get_neighbors_still_in_Q(Q, u, direction);
+        println("({},{})", u->r, u->c);
+
+        auto neighbors = get_neighbors_still_in_Q(Q, u, u->dir);
         for (Vertex* v : neighbors)
         {
+            auto direction = Direction::none;
+
+            if (u->c < v->c)
+                direction = Direction::right;
+            else if (u->c > v->c)
+                direction = Direction::left;
+            else if (u->r < v->r)
+                direction = Direction::down;
+            else if (u->r > v->r)
+                direction = Direction::up;
+            else
+                throw "where do we moved??";
+
+            int dir_history[5] {0};
+            
+            print("  ({},{})  ({})", v->r, v->c,
+                  to_str(direction));
+            //++dir_history[(int)direction];
+
+            if (u)
+            {
+                print(" <- {}", to_str(u->dir));
+                ++dir_history[(int)u->dir];
+
+                if (u->prev)
+                {
+                    print(" <- {}", to_str(u->prev->dir));
+                    ++dir_history[(int)u->prev->dir];
+
+                    if (u->prev->prev)
+                    {
+                        ++dir_history[(int)u->prev->prev->dir];
+                        print(" <- {}", to_str(u->prev->prev->dir));
+
+                        if (u->prev->prev->prev)
+                        {
+                            ++dir_history[(int)u->prev->prev->prev->dir];
+                            print(" <- {}", to_str(u->prev->prev->prev->dir));
+                        }
+                    }
+                }
+            }
+            println("");
+
+
+            bool skip = false;
+            for (int i = 0; i < 5; ++i)
+            {
+                if (dir_history[i] > 3)
+                {
+                    skip = true;
+                    break;
+                }
+            }
+
+            if (skip)
+            {
+                int s = 0;
+                continue;
+            }
+
             float alt = u->dist + graph.at(v->r).at(v->c);
-
-            //print("  checking v ({}, {})", v->r, v->c);
-
             if (alt < v->dist)
             {
-                prev_direction = direction;
-
-                if (u->c < v->c)
-                    direction = Direction::right;
-                else if (u->c > v->c)
-                    direction = Direction::left;
-                else if (u->r < v->r)
-                    direction = Direction::down;
-                else if (u->r > v->r)
-                    direction = Direction::up;
-                else
-                    int s = 0;
-
-                //print(" updating dist to {}, direction {}", alt, to_str(direction));
-
                 v->dist = alt;
                 v->prev = u;
                 v->dir = direction;
-            }
 
-            //println("");
+                //println(" ({},{}).next -> ({},{})", u->r, u->c, v->r, v->c);
+            }
         }
 
-        int s = 0;
-        /*if (blocks < 3)
-        {
-            v->dist = alt;
-            v->prev.push_back(u);
-            v->dir = direction;
-
-            if (v->prev.size() > 1)
-            {
-                int s = 0;
-            }
-        }*/
-
+        println("");
     }
 
-    int s = 0;
 }
 
 auto find_shortest_path(const vec<Vertex>& prev,
