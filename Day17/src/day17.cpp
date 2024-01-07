@@ -456,7 +456,9 @@ u64 part1()
 
     Vertex* source = &vertices.front();
     Vertex* target = &vertices.back();
+    println("{}", get_time());
     dijkstra(heatmap, vertices, source, target);
+    println("{}", get_time());
 
     auto shortest_path = find_shortest_path(vertices, source, target);
 
