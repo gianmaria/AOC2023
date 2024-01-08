@@ -332,7 +332,7 @@ void dijkstra(const Matrix<T>& graph,
         if (*u == *target)
             break;
 
-        println("({},{})", u->r, u->c);
+        println("u is {} ({},{})", graph[u->r][u->c], u->r, u->c);
 
         auto neighbors = get_neighbors_still_in_Q(Q, u, u->dir);
         for (Vertex* v : neighbors)
@@ -352,7 +352,9 @@ void dijkstra(const Matrix<T>& graph,
 
             int dir_history[5] {0};
             
-            print("  ({},{})  ({})", v->r, v->c,
+            print("  v is {} ({},{})  ({})", 
+                  graph[v->r][v->c],
+                  v->r, v->c,
                   to_str(direction));
             ++dir_history[(int)direction];
 
