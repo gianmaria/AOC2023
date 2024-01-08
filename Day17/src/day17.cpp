@@ -329,8 +329,8 @@ void dijkstra(const Matrix<T>& graph,
         std::swap(*it, *(Q.end() - 1));
         Q.pop_back();
 
-        if (*u == *target)
-            break;
+        //if (*u == *target)
+        //    break;
 
         println("u is {} ({},{})", graph[u->r][u->c], u->r, u->c);
 
@@ -350,36 +350,29 @@ void dijkstra(const Matrix<T>& graph,
             else
                 throw "where do we moved??";
 
-            int dir_history[5] {0};
-            
-            print("  v is {} ({},{})  ({})", 
+            array<int, 5> dir_history{ 0 };
+
+            print("  v is {} ({},{})  ({})",
                   graph[v->r][v->c],
                   v->r, v->c,
                   to_str(direction));
             ++dir_history[(int)direction];
 
-            if (u)
+            auto*tmp = u;
+            for (u64 i = 0; i < 3; ++i)
             {
-                print(" <- {}", to_str(u->dir));
-                ++dir_history[(int)u->dir];
-
-                if (u->prev)
+                if (tmp)
                 {
-                    print(" <- {}", to_str(u->prev->dir));
-                    ++dir_history[(int)u->prev->dir];
-
-                    if (u->prev->prev)
-                    {
-                        ++dir_history[(int)u->prev->prev->dir];
-                        print(" <- {}", to_str(u->prev->prev->dir));
-                    }
+                    print(" <- {}", to_str(tmp->dir));
+                    ++dir_history[(int)tmp->dir];
+                    tmp = tmp->prev;
                 }
             }
-            println("");
+            
 
 
             bool skip = false;
-            for (int i = 0; i < 5; ++i)
+            for (int i = 0; i < dir_history.size(); ++i)
             {
                 if (dir_history[i] > 3)
                 {
@@ -390,9 +383,10 @@ void dijkstra(const Matrix<T>& graph,
 
             if (skip)
             {
-                int s = 0;
+                println(" X");
                 continue;
             }
+            println("");
 
             float alt = u->dist + graph.at(v->r).at(v->c);
             if (alt < v->dist)
@@ -512,6 +506,23 @@ u64 part1()
     }
 
     print_matrix(route);
+
+    u64 count = 0;
+    for (const auto& v : vertices)
+    {
+        print("{:03}", v.dist);
+        ++count;
+        if (count == cols)
+        {
+            cout << endl;
+            count = 0;
+        }
+        else
+        {
+            cout << " ";
+        }
+    }
+    cout << endl;
 
     u64 acc = heat_loss;
     u64 res = acc;
