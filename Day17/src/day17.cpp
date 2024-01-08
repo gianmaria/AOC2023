@@ -511,15 +511,7 @@ u64 part1()
         shortest_path.pop();
     }
 
-    for (const auto& row : route)
-    {
-        for (const char ch : row)
-        {
-            cout << ch;
-        }
-        cout << endl;
-    }
-    cout << endl;
+    print_matrix(route);
 
     u64 acc = heat_loss;
     u64 res = acc;
