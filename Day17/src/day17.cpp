@@ -354,7 +354,7 @@ void dijkstra(const Matrix<T>& graph,
             
             print("  ({},{})  ({})", v->r, v->c,
                   to_str(direction));
-            //++dir_history[(int)direction];
+            ++dir_history[(int)direction];
 
             if (u)
             {
@@ -370,12 +370,6 @@ void dijkstra(const Matrix<T>& graph,
                     {
                         ++dir_history[(int)u->prev->prev->dir];
                         print(" <- {}", to_str(u->prev->prev->dir));
-
-                        if (u->prev->prev->prev)
-                        {
-                            ++dir_history[(int)u->prev->prev->prev->dir];
-                            print(" <- {}", to_str(u->prev->prev->prev->dir));
-                        }
                     }
                 }
             }
