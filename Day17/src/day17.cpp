@@ -349,13 +349,8 @@ void dijkstra(const Matrix<T>& graph,
     };
 
     vec<Vertex*> Q;
-    Q.reserve(vertices.size());
-
-    for (Vertex& vertex : vertices)
-    {
-        Q.push_back(&vertex);
-    }
-
+    ranges::for_each(vertices, [&Q](Vertex& v){Q.push_back(&v);});
+    
     source->dist = 0.0f;
 
     while (Q.size() > 0)
