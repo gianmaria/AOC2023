@@ -358,17 +358,22 @@ void dijkstra(const Matrix<T>& graph,
                   to_str(direction));
             ++dir_history[(int)direction];
 
-            auto*tmp = u;
+            auto* tmp = u;
             for (u64 i = 0; i < 3; ++i)
             {
                 if (tmp)
                 {
-                    print(" <- {}", to_str(tmp->dir));
                     ++dir_history[(int)tmp->dir];
                     tmp = tmp->prev;
                 }
             }
-            
+
+            tmp = u;
+            while (tmp)
+            {
+                print(" <- {}", to_str(tmp->dir));
+                tmp = tmp->prev;
+            }
 
 
             bool skip = false;
