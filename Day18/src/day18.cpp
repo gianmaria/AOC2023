@@ -249,10 +249,10 @@ bool is_inside(i32 r, i32 c,
         if (map[r][cc] != '#')
             continue;
 
-        bool up_wall = (r - 1 > 0) and (map[r - 1][cc] == '#');
+        bool up_wall = (r - 1 >= 0) and (map[r - 1][cc] == '#');
         bool down_wall = (r + 1 < rows) and (map[r + 1][cc] == '#');
 
-        bool left_clean = (cc - 1 > 0) and (map[r][cc - 1] != '#');
+        bool left_clean = (cc - 1 >= 0) and (map[r][cc - 1] != '#');
         bool right_clean = (cc + 1 < cols) and (map[r][cc + 1] != '#');
 
         if (up_wall and down_wall
@@ -271,10 +271,16 @@ bool is_inside(i32 r, i32 c,
             }
             i32 end_wall = cc-1;
 
-            bool up_wall_begin = (r - 1 > 0) and (map[r - 1][begin_wall] == '#');
+            if (begin_wall == end_wall)
+            {
+                ++hit;
+                continue;
+            }
+
+            bool up_wall_begin = (r - 1 >= 0) and (map[r - 1][begin_wall] == '#');
             bool down_wall_begin = (r + 1 < rows) and (map[r + 1][begin_wall] == '#');
 
-            bool up_wall_end = (r - 1 > 0) and (map[r - 1][end_wall] == '#');
+            bool up_wall_end = (r - 1 >= 0) and (map[r - 1][end_wall] == '#');
             bool down_wall_end = (r + 1 < rows) and (map[r + 1][end_wall] == '#');
 
             if (down_wall_begin and down_wall_end)
