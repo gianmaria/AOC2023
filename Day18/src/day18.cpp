@@ -300,7 +300,7 @@ bool is_inside(i32 r, i32 c,
             }
             else
             {
-                throw "impossible wall!"
+                throw "impossible wall!";
             }
         }
     }
@@ -441,7 +441,7 @@ u64 part1()
         }
     }
 
-    save_matrix(map, "map.txt");
+    //save_matrix(map, "map.txt");
 
     return res;
 }
