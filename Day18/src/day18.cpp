@@ -28,6 +28,7 @@
 #include <optional>
 #include <chrono>
 #include <ctime>
+#include <charconv>
 
 
 using u8 = uint8_t;
@@ -183,6 +184,26 @@ str get_time()
     return "";
 }
 
+template<typename T>
+void save_matrix(const Matrix<T>& m, str_cref filename)
+{
+    std::ofstream ofs(filename, std::ios::trunc);
+
+    if (not ofs.is_open())
+    {
+        throw std::format("cannot open file {} for writing", filename);
+    }
+
+    for (const auto& row : m)
+    {
+        for (char ch : row)
+        {
+            ofs << ch;
+        }
+        ofs << endl;
+    }
+}
+
 // ==============================================
 // ==============================================
 //
@@ -196,10 +217,97 @@ str get_time()
 // ==============================================
 // ==============================================
 
+struct Point
+{
+    i32 r {};
+    i32 c {};
+};
+
+bool operator<(const Point& a, const Point& b)
+{
+    if (a.r == b.r)
+        return a.c < b.c;
+    else
+        return a.r < b.r;
+}
+
+// If it's even, it's outside
+// if it's odd, it's inside.
+template<typename T>
+bool is_inside(i32 r, i32 c,
+               i32 rows, i32 cols,
+               const Matrix<T>& map)
+{
+    if (map[r][c] == '#')
+        return false;
+
+    i32 hit = 0;
+    for (i32 cc = c;
+         cc < cols;
+         ++cc)
+    {
+        if (map[r][cc] != '#')
+            continue;
+
+        bool up_wall = (r - 1 > 0) and (map[r - 1][cc] == '#');
+        bool down_wall = (r + 1 < rows) and (map[r + 1][cc] == '#');
+
+        bool left_clean = (cc - 1 > 0) and (map[r][cc - 1] != '#');
+        bool right_clean = (cc + 1 < cols) and (map[r][cc + 1] != '#');
+
+        if (up_wall and down_wall
+            and
+            left_clean and right_clean)
+        {
+            ++hit;
+        }
+        else
+        {
+            i32 begin_wall = cc;
+            while (cc < cols and
+                   map[r][cc] == '#')
+            {
+                ++cc;
+            }
+            i32 end_wall = cc-1;
+
+            bool up_wall_begin = (r - 1 > 0) and (map[r - 1][begin_wall] == '#');
+            bool down_wall_begin = (r + 1 < rows) and (map[r + 1][begin_wall] == '#');
+
+            bool up_wall_end = (r - 1 > 0) and (map[r - 1][end_wall] == '#');
+            bool down_wall_end = (r + 1 < rows) and (map[r + 1][end_wall] == '#');
+
+            if (down_wall_begin and down_wall_end)
+            {
+                hit += 2;
+            }
+            else if (up_wall_begin and up_wall_end)
+            {
+                hit += 2;
+            }
+            else if (down_wall_begin and up_wall_end)
+            {
+                hit += 1;
+            }
+            else if (up_wall_begin and down_wall_end)
+            {
+                hit += 1;
+            }
+            else
+            {
+                int s = 0;
+            }
+        }
+    }
+
+    bool odd = (hit % 2) == 1;
+
+    return odd ? true : false;
+}
 
 u64 part1()
 {
-    auto file_path = "res\\test.txt";
+    auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
@@ -207,8 +315,129 @@ u64 part1()
     auto input = str(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 
-    
-    u64 res = 0;
+    vec<Point> points;
+    points.emplace_back(0, 0);
+
+    for (auto& line : split_string(input, "\n"))
+    {
+        auto token = split_string(line, " ");
+        i32 len = 0;
+        std::from_chars(token[1].data(), token[1].data() + token[1].size(), len);
+
+        char dir = token[0][0];
+
+        auto last_point = points.back();
+
+        if (dir == 'R')
+        {
+            for (i32 i = 1;
+                 i <= len;
+                 ++i)
+            {
+                points.emplace_back(last_point.r, last_point.c + i);
+            }
+        }
+        else if (dir == 'D')
+        {
+            for (i32 i = 1;
+                 i <= len;
+                 ++i)
+            {
+                points.emplace_back(last_point.r + i, last_point.c);
+            }
+        }
+        else if (dir == 'L')
+        {
+            for (i32 i = 1;
+                 i <= len;
+                 ++i)
+            {
+                points.emplace_back(last_point.r, last_point.c - i);
+            }
+        }
+        else if (dir == 'U')
+        {
+            for (i32 i = 1;
+                 i <= len;
+                 ++i)
+            {
+                points.emplace_back(last_point.r - i, last_point.c);
+            }
+        }
+        else
+        {
+            throw std::format("Unknown direction from input <{}>", token[0]);
+        }
+
+    }
+
+    // pop last reduntant point 
+    points.pop_back();
+
+
+    auto it = ranges::min_element(points, [](const Point& a, const Point& b)
+    {
+        return a.r < b.r;
+    });
+    i32 min_row = it->r;
+
+    it = ranges::min_element(points, [](const Point& a, const Point& b)
+    {
+        return a.c < b.c;
+    });
+    i32 min_col = it->c;
+
+    it = ranges::min_element(points, [](const Point& a, const Point& b)
+    {
+        return a.r > b.r;
+    });
+    i32 max_row = it->r;
+
+    it = ranges::min_element(points, [](const Point& a, const Point& b)
+    {
+        return a.c > b.c;
+    });
+    i32 max_col = it->c;
+
+    i32 offset_row = min_row < 0 ? -min_row : 0;
+    i32 offset_col = min_col < 0 ? -min_col : 0;
+
+    i32 rows = max_row + offset_row + 1;
+    i32 cols = max_col + offset_col + 1;
+
+    auto map = vec<vec<char>>(rows, vec<char>(cols, ' '));
+
+    for (const auto& p : points)
+    {
+        map.at(p.r + offset_row).at(p.c + offset_col) = '#';
+    }
+
+    //print_matrix(map);
+
+    u64 res = points.size();
+
+    for (i32 r = 0;
+         r < rows;
+         ++r)
+    {
+        for (i32 c = 0;
+             c < cols;
+             ++c)
+        {
+            char ch = map[r][c];
+            if (ch == '#')
+                continue;
+
+            if (is_inside(r, c, rows, cols, map))
+            {
+                ++res;
+                map[r][c] = 'o';
+            }
+        }
+    }
+
+    save_matrix(map, "map.txt");
+
     return res;
 }
 
