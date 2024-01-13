@@ -448,7 +448,7 @@ u64 part1()
 
 u64 part2()
 {
-    auto file_path = "res\\input.txt";
+    auto file_path = "res\\test.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
@@ -456,14 +456,25 @@ u64 part2()
     auto input = str(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 
-    /*for (auto& line : split_string(input, "\n"))
+    for (auto& line : split_string(input, "\n"))
     {
+        auto token = split_string(line, " ");
 
-    }*/
+        auto hex_num = token[2];
+        hex_num.erase(hex_num.begin());
+        hex_num.erase(hex_num.begin());
+        hex_num.erase(hex_num.end()-1);
 
-    u64 acc = 0;
+        char dir = *hex_num.rbegin();
+        hex_num.erase(hex_num.end()-1);
 
-    u64 res = acc;
+        u64 len = 0;
+        std::from_chars(hex_num.data(), hex_num.data() + hex_num.size(), len, 16);
+
+        int s = 0;
+    }
+
+    u64 res = 0;
     return res;
 }
 
