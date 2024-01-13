@@ -215,16 +215,15 @@ const char* to_str(Direction dir)
     }
 }
 
-auto INF = std::numeric_limits<float>::infinity();
 
 struct Vertex
 {
-    i64 r{ -1 };
-    i64 c{ -1 };
-    float dist{ INF };
-    Vertex* prev{ nullptr };
-    Direction dir{ Direction::none };
+    i64 r {-1};
+    i64 c {-1};
 };
+
+auto INF = std::numeric_limits<float>::infinity();
+auto UNDEF = Vertex();
 
 bool operator==(const Vertex& a, const Vertex& b)
 {
@@ -232,97 +231,71 @@ bool operator==(const Vertex& a, const Vertex& b)
 }
 
 
+struct Vertex_Comparator
+{
+    bool operator()(const Vertex& a, const Vertex& b) const
+    {
+        if (a.r == b.r)
+            return a.c < b.c;
+        else
+            return a.r < b.r;
+    }
+};
 
-const bool debug = true;
+struct Q_Comparator
+{
+    bool operator()(const pair<Vertex, float>& a, const pair<Vertex, float>& b) const
+    {
+        return a.second > b.second;
+    }
+};
 
 template<typename T>
-void dijkstra(const Matrix<T>& graph,
-              vec<Vertex>& vertices,
-              Vertex* source, Vertex* target)
+auto neighbor(const Matrix<T>& graph, Vertex u, 
+              Direction dir)
 {
-    auto get_neighbors_still_in_Q = [&graph](vec<Vertex*>& Q,
-                                             const Vertex* u)
-    {
-        vec<Vertex*> neighbors;
-        const auto rows = graph.size();
-        const auto cols = graph.at(0).size();
-        Direction from = u->dir;
+    vec<Vertex> res;
+    const auto rows = graph.size();
+    const auto cols = graph.at(0).size();
 
-        // left
-        if (u->c - 1 >= 0
-            and
-            from != Direction::right)
-        {
-            auto target = Vertex(u->r, u->c - 1);
-            auto it = ranges::find_if(Q, [&target](const Vertex* elem)
-            {
-                return target == *elem;
-            });
-            if (it != Q.end())
-                neighbors.push_back(*it);
-        }
+    // up
+    if (u.r - 1 >= 0 and
+        dir != Direction::down)
+        res.emplace_back(u.r - 1, u.c);
 
-        // right
-        if (u->c + 1 < cols
-            and
-            from != Direction::left)
-        {
-            auto target = Vertex(u->r, u->c + 1);
-            auto it = ranges::find_if(Q, [&target](const Vertex* elem)
-            {
-                return target == *elem;
-            });
-            if (it != Q.end())
-                neighbors.push_back(*it);
-        }
+    // down
+    if (u.r + 1 < rows and
+        dir != Direction::up)
+        res.emplace_back(u.r + 1, u.c);
 
-        // up
-        if (u->r - 1 >= 0
-            and
-            from != Direction::down)
-        {
-            auto target = Vertex(u->r - 1, u->c);
-            auto it = ranges::find_if(Q, [&target](const Vertex* elem)
-            {
-                return target == *elem;
-            });
-            if (it != Q.end())
-                neighbors.push_back(*it);
-        }
+    // left
+    if (u.c - 1 >= 0 and
+        dir != Direction::right)
+        res.emplace_back(u.r, u.c - 1);
 
-        // down
-        if (u->r + 1 < rows
-            and
-            from != Direction::up)
-        {
-            auto target = Vertex(u->r + 1, u->c);
-            auto it = ranges::find_if(Q, [&target](const Vertex* elem)
-            {
-                return target == *elem;
-            });
-            if (it != Q.end())
-                neighbors.push_back(*it);
-        }
+    // right
+    if (u.c + 1 < cols and
+        dir != Direction::left)
+        res.emplace_back(u.r, u.c + 1);
 
-        return neighbors;
-    };
+    return res;
+}
 
-    auto min_dist_vertex = [](const Vertex* a, const Vertex* b)
-    {
-        return a->dist < b->dist;
-    };
-
-    auto calc_dir = [](const Vertex* u, const Vertex* v)
+template<typename T>
+auto dijkstra(const Matrix<T>& graph,
+              Vertex source, Vertex target)
+{
+    auto calc_dir = [](Vertex u, Vertex v)
     {
         auto direction = Direction::none;
 
-        if (u->c < v->c)
+        if (u.c < v.c)
             direction = Direction::right;
-        else if (u->c > v->c)
+        else if (u.c > v.c)
             direction = Direction::left;
-        else if (u->r < v->r)
+        else if (u.r < v.r)
             direction = Direction::down;
-        else if (u->r > v->r)
+        else if (u.r > v.r)
             direction = Direction::up;
         else
             throw "where do we moved??";
@@ -330,102 +303,72 @@ void dijkstra(const Matrix<T>& graph,
         return direction;
     };
 
-    auto compute_dir_history = [](Vertex* u, Direction direction)
-    {
-        array<int, 5> dir_history{ 0 };
-        u32 limit = 2;
-
-        u32 counter = 0;
-        while (u and counter < limit)
-        {
-            ++dir_history[(int)u->dir];
-            u = u->prev;
-            ++counter;
-        }
-
-        // plus one for the current direction u -> v
-        ++dir_history[(int)direction];
-
-        return ranges::any_of(dir_history, [limit](auto& element) { return element > limit; });
-    };
-
-    vec<Vertex*> Q;
-    ranges::for_each(vertices, [&Q](Vertex& v){Q.push_back(&v);});
+    map<Vertex, float, Vertex_Comparator> dist;
+    map<Vertex, Vertex, Vertex_Comparator> prev;
+    std::priority_queue<pair<Vertex, float>, vec<pair<Vertex, float>>, Q_Comparator> Q;
     
-    source->dist = 0.0f;
+    std::multimap<Vertex, Direction, Vertex_Comparator> dir;
 
-    while (Q.size() > 0)
+    for (i64 r = 0;
+         r < graph.size();
+         ++r)
     {
-        // vertex in Q with min u.dist
-        auto it = ranges::min_element(Q, min_dist_vertex);
-        Vertex* u = *it;
-
-        std::swap(*it, *(Q.end() - 1));
-        Q.pop_back();
-
-        if (*u == *target)
-            break;
-
-        if (debug)
-            println("u is {} ({},{})", graph[u->r][u->c], u->r, u->c);
-
-        auto neighbors = get_neighbors_still_in_Q(Q, u);
-
-        for (Vertex* v : neighbors)
+        for (i64 c = 0;
+             c < graph[0].size();
+             ++c)
         {
-            auto direction = calc_dir(u, v);
-
-            if (debug)
-                print("  v is {} ({},{})  ({})",
-                      graph[v->r][v->c],
-                      v->r, v->c,
-                      to_str(direction));
-
-            if (debug)
-            {
-                auto* tmp = u;
-                while (tmp)
-                {
-                    print(" <- {}", to_str(tmp->dir));
-                    tmp = tmp->prev;
-                }
-            }
-
-            bool skip = compute_dir_history(u, direction);
-
-            if (skip)
-                continue;
-
-            float alt = u->dist + graph.at(v->r).at(v->c);
-            if (alt < v->dist)
-            {
-                v->dist = alt;
-                v->prev = u;
-                v->dir = direction;
-
-                if (debug) print(" U");
-            }
-            if (debug) println("");
+            dist[{r, c}] = INF;
+            prev[{r, c}] = UNDEF;
         }
-        if (debug) println("");
     }
 
+    dist[source] = 0.0f;
+    dir.emplace(source, Direction::none);
+
+    Q.push({source, 0.0f});
+
+    while (not Q.empty())
+    {
+        Vertex u = Q.top().first;
+        Q.pop();
+
+        if (u == target)
+            break;
+
+        auto range = dir.equal_range(u);
+
+        for (Vertex v : neighbor(graph, u, range.first->second))
+        {
+            float alt = dist[u] + graph[v.r][v.c];
+
+            if (alt < dist[v])
+            {
+                dist[v] = alt;
+                prev[v] = u;
+                dir.emplace(v, calc_dir(u, v));
+
+                Q.push({v, alt});
+            }
+        }
+    }
+
+
+    return std::make_pair(dist, prev);
 }
 
-auto find_shortest_path(const vec<Vertex>& prev,
-                        const Vertex* source,
-                        const Vertex* target)
+auto get_shortest_path(map<Vertex, Vertex, Vertex_Comparator>& prev,
+                       Vertex source, Vertex target)
 {
-    std::stack<const Vertex*> S;
-    const Vertex* u = target;
+    std::stack<Vertex> S;
+    Vertex u = target;
 
-    if (u->prev != nullptr or
-        *u == *source)
+    if (prev[u] != UNDEF or
+        u == source)
     {
-        while (u != nullptr)
+        while (u != UNDEF)
         {
             S.push(u);
-            u = u->prev;
+            u = prev[u];
         }
     }
 
@@ -453,79 +396,25 @@ u64 part1()
     }
 
     const auto rows = heatmap.size();
-    const auto cols = heatmap.at(0).size();
+    const auto cols = heatmap[0].size();
 
-    vec<Vertex> vertices;
-    vertices.reserve(rows * cols);
-    for (auto [r, row] : views::enumerate(heatmap))
-    {
-        for (auto [c, col] : views::enumerate(row))
-        {
-            vertices.emplace_back(r, c, INF, nullptr, Direction::none);
-        }
-    }
+    auto source = Vertex(0, 0);
+    auto target = Vertex(rows - 1, cols - 1);
 
-    Vertex* source = &vertices.front();
-    Vertex* target = &vertices.back();
-    println("{}", get_time());
-    dijkstra(heatmap, vertices, source, target);
-    println("{}", get_time());
+    auto [dist, prev] = dijkstra(heatmap, source, target);
+    auto shortest_path = get_shortest_path(prev, source, target);
 
-    auto shortest_path = find_shortest_path(vertices, source, target);
-
-    auto route = Matrix<char>(rows, vec<char>(cols, '.'));
-
-    float heat_loss = 0.0f;
+    auto map = Matrix<char>(rows, vec<char>(cols, '.'));
     while (not shortest_path.empty())
     {
         auto v = shortest_path.top();
-        heat_loss = v->dist;
-        //route.at(v->r).at(v->c) = '#';
-        switch (v->dir)
-        {
-            case Direction::up:
-            route.at(v->r).at(v->c) = '^';
-            break;
-            case Direction::down:
-            route.at(v->r).at(v->c) = 'v';
-            break;
-            case Direction::left:
-            route.at(v->r).at(v->c) = '<';
-            break;
-            case Direction::right:
-            route.at(v->r).at(v->c) = '>';
-            break;
-            default:
-            route.at(v->r).at(v->c) = '#';
-        }
         shortest_path.pop();
+        map[v.r][v.c] = '#';
     }
 
-    print_matrix(route);
+    print_matrix(map);
 
-    if (debug)
-    {
-        u64 count = 0;
-        for (const auto& v : vertices)
-        {
-            print("{:03}", v.dist);
-            ++count;
-            if (count == cols)
-            {
-                cout << endl;
-                count = 0;
-            }
-            else
-            {
-                cout << " ";
-            }
-        }
-        cout << endl;
-    }
-
-    u64 acc = heat_loss;
-
-    u64 res = heat_loss;
+    u64 res = dist[target];
     return res;
 }
 
