@@ -259,7 +259,7 @@ bool is_inside(i32 r, i32 c,
             and
             left_clean and right_clean)
         {
-            ++hit;
+            ++hit; // vertical wall
         }
         else
         {
@@ -273,6 +273,7 @@ bool is_inside(i32 r, i32 c,
 
             if (begin_wall == end_wall)
             {
+                // vertical wall at the end of the cols
                 ++hit;
                 continue;
             }
@@ -283,25 +284,23 @@ bool is_inside(i32 r, i32 c,
             bool up_wall_end = (r - 1 >= 0) and (map[r - 1][end_wall] == '#');
             bool down_wall_end = (r + 1 < rows) and (map[r + 1][end_wall] == '#');
 
-            if (down_wall_begin and down_wall_end)
+            if ((down_wall_begin and down_wall_end) 
+                or
+                (up_wall_begin and up_wall_end))
             {
+                // U shape wall (up or down)
                 hit += 2;
             }
-            else if (up_wall_begin and up_wall_end)
+            else if ((down_wall_begin and up_wall_end)
+                     or
+                     (up_wall_begin and down_wall_end))
             {
-                hit += 2;
-            }
-            else if (down_wall_begin and up_wall_end)
-            {
-                hit += 1;
-            }
-            else if (up_wall_begin and down_wall_end)
-            {
+                // S wall
                 hit += 1;
             }
             else
             {
-                int s = 0;
+                throw "impossible wall!"
             }
         }
     }
