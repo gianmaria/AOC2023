@@ -233,7 +233,7 @@ bool operator==(const Vertex& a, const Vertex& b)
 
 
 
-const bool debug = false;
+const bool debug = true;
 
 template<typename T>
 void dijkstra(const Matrix<T>& graph,
@@ -333,9 +333,10 @@ void dijkstra(const Matrix<T>& graph,
     auto compute_dir_history = [](Vertex* u, Direction direction)
     {
         array<int, 5> dir_history{ 0 };
+        u32 limit = 2;
 
         u32 counter = 0;
-        while (u and counter < 3)
+        while (u and counter < limit)
         {
             ++dir_history[(int)u->dir];
             u = u->prev;
@@ -345,7 +346,7 @@ void dijkstra(const Matrix<T>& graph,
         // plus one for the current direction u -> v
         ++dir_history[(int)direction];
 
-        return ranges::any_of(dir_history, [](auto& element) { return element > 3; });
+        return ranges::any_of(dir_history, [limit](auto& element) { return element > limit; });
     };
 
     vec<Vertex*> Q;
@@ -393,7 +394,7 @@ void dijkstra(const Matrix<T>& graph,
             bool skip = compute_dir_history(u, direction);
 
             if (skip)
-                break;
+                continue;
 
             float alt = u->dist + graph.at(v->r).at(v->c);
             if (alt < v->dist)
