@@ -4,6 +4,7 @@
 
 #include <array>
 #include <assert.h>
+#include <functional>
 #include <cstdint>
 #include <exception>
 #include <utility>
@@ -197,7 +198,7 @@ str get_time()
 // ==============================================
 
 
-enum class Direction
+enum class Direction: u32
 {
     up, down, left, right, none
 };
@@ -215,164 +216,178 @@ const char* to_str(Direction dir)
     }
 }
 
-
 struct Vertex
 {
-    i64 r {-1};
-    i64 c {-1};
+    i32 r {-1};
+    i32 c {-1};
 };
-
-auto INF = std::numeric_limits<float>::infinity();
-auto UNDEF = Vertex();
 
 bool operator==(const Vertex& a, const Vertex& b)
 {
     return (a.c == b.c) and (a.r == b.r);
 }
 
-
-struct Vertex_Comparator
+struct State
 {
-    bool operator()(const Vertex& a, const Vertex& b) const
+    Vertex pos {};
+    u32 heat_loss {0};
+    Direction dir {Direction::none};
+    u32 same_dir_count {0};
+};
+
+Vertex operator+(const Vertex& v, const Direction& dir)
+{
+    // TODO:
+    switch (dir)
     {
-        if (a.r == b.r)
-            return a.c < b.c;
-        else
-            return a.r < b.r;
+        case Direction::up:
+        return {v.r - 1, v.c};
+
+        case Direction::down:
+        return {v.r + 1, v.c};
+
+        case Direction::left:
+        return {v.r, v.c - 1};
+
+        case Direction::right:
+        return {v.r, v.c + 1};
+
+        case Direction::none:
+        return v;
+
+        default:
+        {
+            throw "Impossible direction!";
+        }
+    }
+
+}
+
+bool operator==(const State& a, const State& b)
+{
+    bool res =
+        a.pos == b.pos and
+        a.heat_loss == b.heat_loss and
+        a.dir == b.dir and
+        a.same_dir_count == b.same_dir_count;
+
+    return res;
+}
+
+
+struct Seen_Hash
+{
+    u64 operator()(const State& state) const
+    {
+        u64 seed = 0;
+        std::hash<i32> hi32;
+        std::hash<u32> hu32;
+
+        // Combine the hash values of individual members
+        seed ^= hi32(state.pos.r) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hi32(state.pos.c) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hu32(state.heat_loss) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hu32(static_cast<u32>(state.dir)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hu32(state.same_dir_count) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+        return seed;
     }
 };
 
 struct Q_Comparator
 {
-    bool operator()(const pair<Vertex, float>& a, const pair<Vertex, float>& b) const
+    bool operator()(const State& a, const State& b) const
     {
-        return a.second > b.second;
+        return a.heat_loss > b.heat_loss;
     }
 };
 
 template<typename T>
-auto neighbor(const Matrix<T>& graph, Vertex u, 
-              Direction dir)
+auto dijkstra(const Matrix<T>& graph, Vertex target)
 {
-    vec<Vertex> res;
-    const auto rows = graph.size();
-    const auto cols = graph.at(0).size();
 
-    // up
-    if (u.r - 1 >= 0 and
-        dir != Direction::down)
-        res.emplace_back(u.r - 1, u.c);
-
-    // down
-    if (u.r + 1 < rows and
-        dir != Direction::up)
-        res.emplace_back(u.r + 1, u.c);
-
-    // left
-    if (u.c - 1 >= 0 and
-        dir != Direction::right)
-        res.emplace_back(u.r, u.c - 1);
-
-    // right
-    if (u.c + 1 < cols and
-        dir != Direction::left)
-        res.emplace_back(u.r, u.c + 1);
-
-    return res;
-}
-
-template<typename T>
-auto dijkstra(const Matrix<T>& graph,
-              Vertex source, Vertex target)
-{
-    auto calc_dir = [](Vertex u, Vertex v)
+    auto calc_directions = [&graph](State state)
     {
-        auto direction = Direction::none;
+        const auto rows = graph.size();
+        const auto cols = graph.at(0).size();
 
-        if (u.c < v.c)
-            direction = Direction::right;
-        else if (u.c > v.c)
-            direction = Direction::left;
-        else if (u.r < v.r)
-            direction = Direction::down;
-        else if (u.r > v.r)
-            direction = Direction::up;
-        else
-            throw "where do we moved??";
+        vec<Direction> directions;
 
-        return direction;
+        // up
+        if (state.dir != Direction::down and
+            state.pos.r - 1 >= 0)
+        {
+            directions.emplace_back(Direction::up);
+        }
+
+        // down
+        if (state.dir != Direction::up and
+            state.pos.r + 1 < rows)
+        {
+            directions.emplace_back(Direction::down);
+        }
+
+        // left
+        if (state.dir != Direction::right and
+            state.pos.c - 1 >= 0)
+        {
+            directions.emplace_back(Direction::left);
+        }
+
+        // right
+        if (state.dir != Direction::left and
+            state.pos.c + 1 < cols)
+        {
+            directions.emplace_back(Direction::right);
+        }
+
+        return directions;
     };
 
-    map<Vertex, float, Vertex_Comparator> dist;
-    map<Vertex, Vertex, Vertex_Comparator> prev;
-    std::priority_queue<pair<Vertex, float>, vec<pair<Vertex, float>>, Q_Comparator> Q;
-    
-    std::multimap<Vertex, Direction, Vertex_Comparator> dir;
+    u32 total_heat_loss = 0;
 
-    for (i64 r = 0;
-         r < graph.size();
-         ++r)
-    {
-        for (i64 c = 0;
-             c < graph[0].size();
-             ++c)
-        {
-            dist[{r, c}] = INF;
-            prev[{r, c}] = UNDEF;
-        }
-    }
+    const u32 limit_same_dir = 3;
+    std::priority_queue<State, vec<State>, Q_Comparator> Q;
+    std::unordered_map<State, bool, Seen_Hash> seen;
 
-    dist[source] = 0.0f;
-    dir.emplace(source, Direction::none);
-
-    Q.push({source, 0.0f});
+    Q.push({{0,0},0,Direction::right, 0});
+    Q.push({{0,0},0,Direction::down, 0});
 
     while (not Q.empty())
     {
-        Vertex u = Q.top().first;
+        auto state = Q.top();
         Q.pop();
 
-        if (u == target)
-            break;
-
-        auto range = dir.equal_range(u);
-
-        for (Vertex v : neighbor(graph, u, range.first->second))
+        if (state.pos == target)
         {
-            float alt = dist[u] + graph[v.r][v.c];
+            total_heat_loss = state.heat_loss;
+            break;
+        }
 
-            if (alt < dist[v])
+        for (auto new_dir : calc_directions(state))
+        {
+            auto new_pos = state.pos + new_dir;
+            auto new_cost = state.heat_loss + graph[new_pos.r][new_pos.c];
+
+            auto new_state = State(new_pos, new_cost, new_dir, 1);
+
+            if (new_state.dir == state.dir) // same direction
             {
-                dist[v] = alt;
-                prev[v] = u;
-                dir.emplace(v, calc_dir(u, v));
+                new_state.same_dir_count = state.same_dir_count + 1;
+            }
 
-                Q.push({v, alt});
+            if (state.same_dir_count < limit_same_dir)
+            {
+                if (not seen.contains(new_state))
+                {
+                    seen.insert({new_state, true});
+                    Q.push(new_state);
+                }
             }
         }
     }
 
-
-    return std::make_pair(dist, prev);
-}
-
-auto get_shortest_path(map<Vertex, Vertex, Vertex_Comparator>& prev,
-                       Vertex source, Vertex target)
-{
-    std::stack<Vertex> S;
-    Vertex u = target;
-
-    if (prev[u] != UNDEF or
-        u == source)
-    {
-        while (u != UNDEF)
-        {
-            S.push(u);
-            u = prev[u];
-        }
-    }
-
-    return S;
+    return total_heat_loss;
 }
 
 u64 part1()
@@ -398,23 +413,11 @@ u64 part1()
     const auto rows = heatmap.size();
     const auto cols = heatmap[0].size();
 
-    auto source = Vertex(0, 0);
     auto target = Vertex(rows - 1, cols - 1);
 
-    auto [dist, prev] = dijkstra(heatmap, source, target);
-    auto shortest_path = get_shortest_path(prev, source, target);
+    auto heat_loss = dijkstra(heatmap, target);
 
-    auto map = Matrix<char>(rows, vec<char>(cols, '.'));
-    while (not shortest_path.empty())
-    {
-        auto v = shortest_path.top();
-        shortest_path.pop();
-        map[v.r][v.c] = '#';
-    }
-
-    print_matrix(map);
-
-    u64 res = dist[target];
+    u64 res = heat_loss;
     return res;
 }
 
@@ -444,7 +447,7 @@ int main()
     try
     {
         println("day 17 part 1: {}", part1());
-        println("day 17 part 2: {}", part2());
+        //println("day 17 part 2: {}", part2());
 
         return 0;
     }
