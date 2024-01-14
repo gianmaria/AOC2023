@@ -267,13 +267,11 @@ bool operator==(const State& a, const State& b)
 {
     bool res =
         a.pos == b.pos and
-        a.heat_loss == b.heat_loss and
         a.dir == b.dir and
         a.same_dir_count == b.same_dir_count;
 
     return res;
 }
-
 
 struct Seen_Hash
 {
@@ -286,7 +284,7 @@ struct Seen_Hash
         // Combine the hash values of individual members
         seed ^= hi32(state.pos.r) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hi32(state.pos.c) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= hu32(state.heat_loss) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        //seed ^= hu32(state.heat_loss) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hu32(static_cast<u32>(state.dir)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hu32(state.same_dir_count) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
@@ -305,7 +303,6 @@ struct Q_Comparator
 template<typename T>
 auto dijkstra(const Matrix<T>& graph, Vertex target)
 {
-
     auto calc_directions = [&graph](State state)
     {
         const auto rows = graph.size();
@@ -350,13 +347,14 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
     std::priority_queue<State, vec<State>, Q_Comparator> Q;
     std::unordered_map<State, bool, Seen_Hash> seen;
 
-    Q.push({{0,0},0,Direction::right, 0});
-    Q.push({{0,0},0,Direction::down, 0});
+    Q.push({{0,0},0,Direction::none, 0});
 
     while (not Q.empty())
     {
         auto state = Q.top();
         Q.pop();
+        
+        seen.insert({state, true});
 
         if (state.pos == target)
         {
@@ -371,19 +369,24 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
 
             auto new_state = State(new_pos, new_cost, new_dir, 1);
 
-            if (new_state.dir == state.dir) // same direction
+            if (new_state.dir == state.dir and
+                state.same_dir_count < limit_same_dir)
             {
                 new_state.same_dir_count = state.same_dir_count + 1;
-            }
 
-            if (state.same_dir_count < limit_same_dir)
-            {
                 if (not seen.contains(new_state))
                 {
-                    seen.insert({new_state, true});
                     Q.push(new_state);
                 }
             }
+            else
+            {
+                if (not seen.contains(new_state))
+                {
+                    Q.push(new_state);
+                }
+            }
+
         }
     }
 
