@@ -274,6 +274,7 @@ struct Seen_Hash
         // Combine the hash values of individual members
         seed ^= hi32(state.pos.r) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hi32(state.pos.c) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        //seed ^= hu32(state.heat_loss) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hu32(static_cast<u32>(state.dir)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hu32(state.same_dir_count) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
@@ -284,9 +285,11 @@ struct Seen_Hash
 bool operator==(const State& a, const State& b)
 {
     bool res =
-        a.pos == b.pos and
-        a.dir == b.dir and
-        a.same_dir_count == b.same_dir_count;
+        a.pos == b.pos
+        //and a.heat_loss == b.heat_loss
+        and a.dir == b.dir
+        and a.same_dir_count == b.same_dir_count
+        ;
 
     return res;
 }
@@ -351,14 +354,9 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
         auto state = Q.top();
         Q.pop();
 
-        println("checking state ({},{}) {} {} - {}",
-              state.pos.r, state.pos.c, to_str(state.dir),
+        println("checking state ({},{}) {} - cost: {}",
+              state.pos.r, state.pos.c, 
               state.same_dir_count, state.heat_loss);
-
-        if (seen.contains(state))
-            continue;
-
-        seen.insert({state, true});
 
         for (auto new_dir : calc_directions(state))
         {
@@ -384,7 +382,11 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
             
             if (state.same_dir_count < limit_same_dir)
             {
-                Q.push(new_state);
+                if (not seen.contains(new_state))
+                {
+                    seen.insert({new_state, true});
+                    Q.push(new_state);
+                }
             }
 
         }
