@@ -351,14 +351,14 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
         auto state = Q.top();
         Q.pop();
 
-        println("checking state ({},{}) {} {} - {}",
-              state.pos.r, state.pos.c, to_str(state.dir),
-              state.same_dir_count, state.heat_loss);
+        //println("checking state ({},{}) {} {} - {}",
+        //      state.pos.r, state.pos.c, to_str(state.dir),
+        //      state.same_dir_count, state.heat_loss);
 
         if (seen.contains(state))
             continue;
 
-        seen.emplace(state, true);
+        seen.insert({state, true});
 
         for (auto new_dir : calc_directions(state))
         {
@@ -377,10 +377,10 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
                 new_state.same_dir_count = state.same_dir_count + 1;
             }
             
-            println("  neighbour ({},{}) {} {} - {}",
+            /*println("  neighbour ({},{}) {} {} - {}",
                     new_state.pos.r, new_state.pos.c,
                     to_str(new_state.dir), new_state.same_dir_count,
-                    new_state.heat_loss);
+                    new_state.heat_loss);*/
             
             if (state.same_dir_count < limit_same_dir)
             {
