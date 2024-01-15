@@ -387,6 +387,13 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
                     seen.insert({new_state, true});
                     Q.push(new_state);
                 }
+                else
+                {
+                    // TODO: mi serve il costo associato allo stato
+                    // già presente nella mappa!
+                    auto ss = seen[new_state];
+                    
+                }
             }
 
         }
