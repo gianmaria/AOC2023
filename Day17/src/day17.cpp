@@ -344,16 +344,16 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
     std::priority_queue<State, vec<State>, Q_Comparator> Q;
     std::unordered_map<State, bool, Seen_Hash> seen;
 
-    Q.push({ {0,0},0,Direction::none, 0 });
+    Q.push({ {0,0}, 0, Direction::none, 0 });
 
     while (not Q.empty())
     {
         auto state = Q.top();
         Q.pop();
 
-        //println("checking state ({},{}) {} {} - {}",
-        //      state.pos.r, state.pos.c, to_str(state.dir),
-        //      state.same_dir_count, state.heat_loss);
+        println("checking state ({},{}) {} {} - {}",
+              state.pos.r, state.pos.c, to_str(state.dir),
+              state.same_dir_count, state.heat_loss);
 
         if (seen.contains(state))
             continue;
@@ -365,12 +365,12 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
             auto new_pos = state.pos + new_dir;
             auto new_cost = state.heat_loss + graph[new_pos.r][new_pos.c];
 
-            auto new_state = State(new_pos, new_cost, new_dir, 1);
-
-            if (new_state.pos == target)
+            if (new_pos == target)
             {
-                return new_state.heat_loss;
+                return new_cost;
             }
+
+            auto new_state = State(new_pos, new_cost, new_dir, 1);
 
             if (new_state.dir == state.dir)
             {
