@@ -175,10 +175,10 @@ str get_time()
 
     if (localtime_s(&local_time, &time) == 0)
     {
-        char buffer[512] {};
+        char buffer[512]{};
         if (strftime(buffer, sizeof(buffer), "%H:%M:%S", &local_time) != 0)
         {
-            return {buffer};
+            return { buffer };
         }
     }
     return "";
@@ -218,8 +218,8 @@ const char* to_str(Direction dir)
 
 struct Vertex
 {
-    i32 r {-1};
-    i32 c {-1};
+    i32 r{ -1 };
+    i32 c{ -1 };
 };
 
 bool operator==(const Vertex& a, const Vertex& b)
@@ -229,10 +229,10 @@ bool operator==(const Vertex& a, const Vertex& b)
 
 struct State
 {
-    Vertex pos {};
-    u32 heat_loss {0};
-    Direction dir {Direction::none};
-    u32 same_dir_count {0};
+    Vertex pos{};
+    u32 heat_loss{ 0 };
+    Direction dir{ Direction::none };
+    u32 same_dir_count{ 0 };
 };
 
 Vertex operator+(const Vertex& v, const Direction& dir)
@@ -241,16 +241,16 @@ Vertex operator+(const Vertex& v, const Direction& dir)
     switch (dir)
     {
         case Direction::up:
-        return {v.r - 1, v.c};
+        return { v.r - 1, v.c };
 
         case Direction::down:
-        return {v.r + 1, v.c};
+        return { v.r + 1, v.c };
 
         case Direction::left:
-        return {v.r, v.c - 1};
+        return { v.r, v.c - 1 };
 
         case Direction::right:
-        return {v.r, v.c + 1};
+        return { v.r, v.c + 1 };
 
         case Direction::none:
         return v;
@@ -261,16 +261,6 @@ Vertex operator+(const Vertex& v, const Direction& dir)
         }
     }
 
-}
-
-bool operator==(const State& a, const State& b)
-{
-    bool res =
-        a.pos == b.pos and
-        a.dir == b.dir and
-        a.same_dir_count == b.same_dir_count;
-
-    return res;
 }
 
 struct Seen_Hash
@@ -284,13 +274,22 @@ struct Seen_Hash
         // Combine the hash values of individual members
         seed ^= hi32(state.pos.r) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hi32(state.pos.c) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        //seed ^= hu32(state.heat_loss) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hu32(static_cast<u32>(state.dir)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         seed ^= hu32(state.same_dir_count) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
         return seed;
     }
 };
+
+bool operator==(const State& a, const State& b)
+{
+    bool res =
+        a.pos == b.pos and
+        a.dir == b.dir; and
+        a.same_dir_count == b.same_dir_count;
+
+    return res;
+}
 
 struct Q_Comparator
 {
@@ -347,20 +346,31 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
     std::priority_queue<State, vec<State>, Q_Comparator> Q;
     std::unordered_map<State, bool, Seen_Hash> seen;
 
-    Q.push({{0,0},0,Direction::none, 0});
+    Q.push({ {0,0},0,Direction::none, 0 });
 
     while (not Q.empty())
     {
         auto state = Q.top();
         Q.pop();
-        
-        seen.insert({state, true});
+
+        print("checking state ({},{}) {} {} - {}",
+              state.pos.r, state.pos.c, to_str(state.dir),
+              state.same_dir_count, state.heat_loss);
 
         if (state.pos == target)
         {
             total_heat_loss = state.heat_loss;
+            println("");
             break;
         }
+
+        auto [_, success] = seen.try_emplace(state, true);
+        if (not success)
+        {
+            println(" skip!");
+            continue;
+        }
+        println("");
 
         for (auto new_dir : calc_directions(state))
         {
@@ -368,6 +378,9 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
             auto new_cost = state.heat_loss + graph[new_pos.r][new_pos.c];
 
             auto new_state = State(new_pos, new_cost, new_dir, 1);
+
+            //print("  neighbour ({},{}) {} {}",
+            //      new_state.pos.r, new_state.pos.c, to_str(new_state.dir), new_state.same_dir_count);
 
             if (new_state.dir == state.dir and
                 state.same_dir_count < limit_same_dir)
@@ -377,6 +390,11 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
                 if (not seen.contains(new_state))
                 {
                     Q.push(new_state);
+                    //println("");
+                }
+                else
+                {
+                    //println(" already seen!");
                 }
             }
             else
@@ -384,10 +402,16 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
                 if (not seen.contains(new_state))
                 {
                     Q.push(new_state);
+                    //println("");
+                }
+                else
+                {
+                    //println(" already seen!");
                 }
             }
 
         }
+        //println("");
     }
 
     return total_heat_loss;
