@@ -285,7 +285,7 @@ bool operator==(const State& a, const State& b)
 {
     bool res =
         a.pos == b.pos and
-        a.dir == b.dir; and
+        a.dir == b.dir and
         a.same_dir_count == b.same_dir_count;
 
     return res;
