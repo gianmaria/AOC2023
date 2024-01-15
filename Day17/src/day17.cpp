@@ -230,7 +230,6 @@ bool operator==(const Vertex& a, const Vertex& b)
 struct State
 {
     Vertex pos{};
-    u32 heat_loss{ 0 };
     Direction dir{ Direction::none };
     u32 same_dir_count{ 0 };
 };
