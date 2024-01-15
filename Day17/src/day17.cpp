@@ -340,8 +340,6 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
         return directions;
     };
 
-    u32 total_heat_loss = 0;
-
     const u32 limit_same_dir = 3;
     std::priority_queue<State, vec<State>, Q_Comparator> Q;
     std::unordered_map<State, bool, Seen_Hash> seen;
@@ -353,24 +351,14 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
         auto state = Q.top();
         Q.pop();
 
-        print("checking state ({},{}) {} {} - {}",
+        println("checking state ({},{}) {} {} - {}",
               state.pos.r, state.pos.c, to_str(state.dir),
               state.same_dir_count, state.heat_loss);
 
-        if (state.pos == target)
-        {
-            total_heat_loss = state.heat_loss;
-            println("");
-            break;
-        }
-
-        auto [_, success] = seen.try_emplace(state, true);
-        if (not success)
-        {
-            println(" skip!");
+        if (seen.contains(state))
             continue;
-        }
-        println("");
+
+        seen.emplace(state, true);
 
         for (auto new_dir : calc_directions(state))
         {
@@ -379,42 +367,31 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
 
             auto new_state = State(new_pos, new_cost, new_dir, 1);
 
-            //print("  neighbour ({},{}) {} {}",
-            //      new_state.pos.r, new_state.pos.c, to_str(new_state.dir), new_state.same_dir_count);
+            if (new_state.pos == target)
+            {
+                return new_state.heat_loss;
+            }
 
-            if (new_state.dir == state.dir and
-                state.same_dir_count < limit_same_dir)
+            if (new_state.dir == state.dir)
             {
                 new_state.same_dir_count = state.same_dir_count + 1;
-
-                if (not seen.contains(new_state))
-                {
-                    Q.push(new_state);
-                    //println("");
-                }
-                else
-                {
-                    //println(" already seen!");
-                }
             }
-            else
+            
+            println("  neighbour ({},{}) {} {} - {}",
+                    new_state.pos.r, new_state.pos.c,
+                    to_str(new_state.dir), new_state.same_dir_count,
+                    new_state.heat_loss);
+            
+            if (state.same_dir_count < limit_same_dir)
             {
-                if (not seen.contains(new_state))
-                {
-                    Q.push(new_state);
-                    //println("");
-                }
-                else
-                {
-                    //println(" already seen!");
-                }
+                Q.push(new_state);
             }
 
         }
-        //println("");
+        
     }
 
-    return total_heat_loss;
+    return 0u;
 }
 
 u64 part1()
