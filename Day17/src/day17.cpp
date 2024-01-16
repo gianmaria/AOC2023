@@ -295,9 +295,9 @@ bool operator==(const State& a, const State& b)
 
 struct Q_Comparator
 {
-    bool operator()(const State& a, const State& b) const
+    bool operator()(const pair<State, u32>& a, const pair<State, u32>& b) const
     {
-        return a.heat_loss > b.heat_loss;
+        return a.second > b.second;
     }
 };
 
@@ -343,63 +343,60 @@ auto dijkstra(const Matrix<T>& graph, Vertex target)
     };
 
     const u32 limit_same_dir = 3;
-    std::priority_queue<State, vec<State>, Q_Comparator> Q;
-    std::unordered_map<State, bool, Seen_Hash> seen;
+    std::priority_queue<pair<State, u32>, vec<pair<State, u32>>, Q_Comparator> Q;
+    std::unordered_map<State, u32, Seen_Hash> seen;
 
-    Q.push({ {0,0}, 0, Direction::none, 0 });
+    vec<u32> costs;
+
+    Q.push({ { {0,0}, Direction::none, 0}, 0 });
 
     while (not Q.empty())
     {
-        auto state = Q.top();
+        auto [state, cost] = Q.top();
         Q.pop();
 
-        println("checking state ({},{}) {} - cost: {}",
-              state.pos.r, state.pos.c, 
-              state.same_dir_count, state.heat_loss);
+        seen.emplace(state, cost);
+
+        //if (state.pos == target)
+        //{
+        //    cout << state.pos.r <<","<< state.pos.c << " " << cost << endl;
+        //}
 
         for (auto new_dir : calc_directions(state))
         {
             auto new_pos = state.pos + new_dir;
-            auto new_cost = state.heat_loss + graph[new_pos.r][new_pos.c];
+            auto new_cost = cost + graph[new_pos.r][new_pos.c];
 
             if (new_pos == target)
             {
-                return new_cost;
+                costs.push_back(new_cost);
             }
 
-            auto new_state = State(new_pos, new_cost, new_dir, 1);
+            auto new_state = State(new_pos, new_dir, 1);
 
-            if (new_state.dir == state.dir)
+            if (new_state.dir == state.dir and
+                state.same_dir_count < limit_same_dir)
             {
                 new_state.same_dir_count = state.same_dir_count + 1;
-            }
-            
-            /*println("  neighbour ({},{}) {} {} - {}",
-                    new_state.pos.r, new_state.pos.c,
-                    to_str(new_state.dir), new_state.same_dir_count,
-                    new_state.heat_loss);*/
-            
-            if (state.same_dir_count < limit_same_dir)
-            {
+
                 if (not seen.contains(new_state))
                 {
-                    seen.insert({new_state, true});
-                    Q.push(new_state);
+                    Q.push({new_state, new_cost});
                 }
-                else
-                {
-                    // TODO: mi serve il costo associato allo stato
-                    // già presente nella mappa!
-                    auto ss = seen[new_state];
-                    
+            }
+            else
+            {
+                if (not seen.contains(new_state))
+                {                    
+                    Q.push({new_state, new_cost});
                 }
             }
 
         }
-        
+
     }
 
-    return 0u;
+    return *ranges::max_element(costs);
 }
 
 u64 part1()
