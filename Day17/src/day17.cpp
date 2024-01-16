@@ -198,69 +198,14 @@ str get_time()
 // ==============================================
 
 
-enum class Direction: u32
-{
-    up, down, left, right, none
-};
-
-const char* to_str(Direction dir)
-{
-    switch (dir)
-    {
-        case Direction::none: return "none";
-        case Direction::left: return "left";
-        case Direction::right: return "right";
-        case Direction::up: return "up";
-        case Direction::down: return "down";
-        default: return "???";
-    }
-}
-
-struct Vertex
-{
-    i32 r{ -1 };
-    i32 c{ -1 };
-};
-
-bool operator==(const Vertex& a, const Vertex& b)
-{
-    return (a.c == b.c) and (a.r == b.r);
-}
-
 struct State
 {
-    Vertex pos{};
-    Direction dir{ Direction::none };
-    u32 same_dir_count{ 0 };
+    i32 x{ 0 };
+    i32 y{ 0 };
+    i32 dx{ 0 };
+    i32 dy{ 0 };
+    i32 distance{ 0 };
 };
-
-Vertex operator+(const Vertex& v, const Direction& dir)
-{
-    // TODO:
-    switch (dir)
-    {
-        case Direction::up:
-        return { v.r - 1, v.c };
-
-        case Direction::down:
-        return { v.r + 1, v.c };
-
-        case Direction::left:
-        return { v.r, v.c - 1 };
-
-        case Direction::right:
-        return { v.r, v.c + 1 };
-
-        case Direction::none:
-        return v;
-
-        default:
-        {
-            throw "Impossible direction!";
-        }
-    }
-
-}
 
 struct Seen_Hash
 {
@@ -268,14 +213,13 @@ struct Seen_Hash
     {
         u64 seed = 0;
         std::hash<i32> hi32;
-        std::hash<u32> hu32;
 
         // Combine the hash values of individual members
-        seed ^= hi32(state.pos.r) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= hi32(state.pos.c) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        //seed ^= hu32(state.heat_loss) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= hu32(static_cast<u32>(state.dir)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        seed ^= hu32(state.same_dir_count) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hi32(state.x) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hi32(state.y) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hi32(state.dx) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hi32(state.dy) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        seed ^= hi32(state.distance) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
         return seed;
     }
@@ -284,119 +228,66 @@ struct Seen_Hash
 bool operator==(const State& a, const State& b)
 {
     bool res =
-        a.pos == b.pos
-        //and a.heat_loss == b.heat_loss
-        and a.dir == b.dir
-        and a.same_dir_count == b.same_dir_count
+        a.x == b.x
+        and a.y == b.y
+        and a.dx == b.dx
+        and a.dy == b.dy
+        and a.distance == b.distance
         ;
 
     return res;
 }
 
-struct Q_Comparator
+i32 width = 0;
+i32 height = 0;
+i32 end_x = 0;
+i32 end_y = 0;
+Matrix<u16> grid;
+
+using Cost = i32;
+std::unordered_map<Cost, vec<State>> state_by_cost;
+std::unordered_map<State, Cost, Seen_Hash> cost_by_state;
+
+const u32 limit_same_dir = 3;
+
+void move_and_add_state(i32 cost, i32 x, i32 y, i32 dx, i32 dy, i32 distance)
 {
-    bool operator()(const pair<State, u32>& a, const pair<State, u32>& b) const
+    x += dx;
+    y += dy;
+
+    if (x < 0 or y < 0)
+        return;
+    if (x >= width or y >= height)
+        return;
+
+    auto new_cost = cost + grid[y][x];
+
+    if (x == end_x and y == end_y)
     {
-        return a.second > b.second;
-    }
-};
-
-template<typename T>
-auto dijkstra(const Matrix<T>& graph, Vertex target)
-{
-    auto calc_directions = [&graph](State state)
-    {
-        const auto rows = graph.size();
-        const auto cols = graph.at(0).size();
-
-        vec<Direction> directions;
-
-        // up
-        if (state.dir != Direction::down and
-            state.pos.r - 1 >= 0)
-        {
-            directions.emplace_back(Direction::up);
-        }
-
-        // down
-        if (state.dir != Direction::up and
-            state.pos.r + 1 < rows)
-        {
-            directions.emplace_back(Direction::down);
-        }
-
-        // left
-        if (state.dir != Direction::right and
-            state.pos.c - 1 >= 0)
-        {
-            directions.emplace_back(Direction::left);
-        }
-
-        // right
-        if (state.dir != Direction::left and
-            state.pos.c + 1 < cols)
-        {
-            directions.emplace_back(Direction::right);
-        }
-
-        return directions;
-    };
-
-    const u32 limit_same_dir = 3;
-    std::priority_queue<pair<State, u32>, vec<pair<State, u32>>, Q_Comparator> Q;
-    std::unordered_map<State, u32, Seen_Hash> seen;
-
-    vec<u32> costs;
-
-    Q.push({ { {0,0}, Direction::none, 0}, 0 });
-
-    while (not Q.empty())
-    {
-        auto [state, cost] = Q.top();
-        Q.pop();
-
-        seen.emplace(state, cost);
-
-        //if (state.pos == target)
-        //{
-        //    cout << state.pos.r <<","<< state.pos.c << " " << cost << endl;
-        //}
-
-        for (auto new_dir : calc_directions(state))
-        {
-            auto new_pos = state.pos + new_dir;
-            auto new_cost = cost + graph[new_pos.r][new_pos.c];
-
-            if (new_pos == target)
-            {
-                costs.push_back(new_cost);
-            }
-
-            auto new_state = State(new_pos, new_dir, 1);
-
-            if (new_state.dir == state.dir and
-                state.same_dir_count < limit_same_dir)
-            {
-                new_state.same_dir_count = state.same_dir_count + 1;
-
-                if (not seen.contains(new_state))
-                {
-                    Q.push({new_state, new_cost});
-                }
-            }
-            else
-            {
-                if (not seen.contains(new_state))
-                {                    
-                    Q.push({new_state, new_cost});
-                }
-            }
-
-        }
-
+        cout << new_cost << endl;
+        exit(1);
     }
 
-    return *ranges::max_element(costs);
+    auto state = State(x, y, dx, dy, distance);
+
+    if (not cost_by_state.contains(state))
+    {
+        state_by_cost[new_cost].push_back(state);
+        cost_by_state[state] = new_cost;
+    }
+
+}
+
+auto get_all_states_at_cost(i32 cost)
+{
+    auto res = vec<State>(state_by_cost[cost].begin(), state_by_cost[cost].end());
+
+    while (state_by_cost.contains(cost))
+    {
+        state_by_cost.erase(cost);
+    }
+
+    return res;
 }
 
 u64 part1()
@@ -409,25 +300,45 @@ u64 part1()
     auto input = str(std::istreambuf_iterator<char>(ifs),
                      std::istreambuf_iterator<char>());
 
-    Matrix<u16> heatmap;
     for (auto& line : split_string(input, "\n"))
     {
-        heatmap.emplace_back(vec<u16>{});
+        grid.emplace_back();
         for (char ch : line)
         {
-            heatmap.back().push_back(static_cast<u16>(ch - '0'));
+            grid.back().push_back(static_cast<u16>(ch - '0'));
         }
     }
 
-    const auto rows = heatmap.size();
-    const auto cols = heatmap[0].size();
+    height = grid.size();
+    width = grid[0].size();
+    end_x =  width - 1;
+    end_y =  height - 1;
 
-    auto target = Vertex(rows - 1, cols - 1);
+    move_and_add_state(0, 0, 0, 1, 0, 1);
+    move_and_add_state(0, 0, 0, 0, 1, 1);
 
-    auto heat_loss = dijkstra(heatmap, target);
+    while (true)
+    {
+        auto current_cost = *ranges::min_element(state_by_cost | views::keys);
+        //println("current_cost: {}", current_cost);
+        //println("len state_by_cost before pop: {}", state_by_cost.size());
+        auto next_states = get_all_states_at_cost(current_cost);
+        //println("len state_by_cost after pop: {}", state_by_cost.size());
+        //println("next_states size: {}", next_states.size());
+        println("");
 
-    u64 res = heat_loss;
-    return res;
+        for (const auto& state : next_states)
+        {
+            // Perform the left and right turns
+            move_and_add_state(current_cost, state.x, state.y, state.dx, -state.dx, 1);
+            move_and_add_state(current_cost, state.x, state.y, -state.dy, state.dx, 1);
+
+            if (state.distance < limit_same_dir)
+                move_and_add_state(current_cost, state.x, state.y, state.dx, state.dy, state.distance + 1);
+        }
+    }
+
+    return 0;
 }
 
 u64 part2()
