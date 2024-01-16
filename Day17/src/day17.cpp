@@ -281,18 +281,13 @@ void move_and_add_state(i32 cost, i32 x, i32 y, i32 dx, i32 dy, i32 distance)
 auto get_all_states_at_cost(i32 cost)
 {
     auto res = vec<State>(state_by_cost[cost].begin(), state_by_cost[cost].end());
-
-    while (state_by_cost.contains(cost))
-    {
-        state_by_cost.erase(cost);
-    }
-
+    state_by_cost.erase(cost);
     return res;
 }
 
 u64 part1()
 {
-    auto file_path = "res\\test.txt";
+    auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
@@ -321,20 +316,25 @@ u64 part1()
     {
         auto current_cost = *ranges::min_element(state_by_cost | views::keys);
         //println("current_cost: {}", current_cost);
+        
         //println("len state_by_cost before pop: {}", state_by_cost.size());
         auto next_states = get_all_states_at_cost(current_cost);
         //println("len state_by_cost after pop: {}", state_by_cost.size());
         //println("next_states size: {}", next_states.size());
-        println("");
+        //println("");
 
         for (const auto& state : next_states)
         {
             // Perform the left and right turns
-            move_and_add_state(current_cost, state.x, state.y, state.dx, -state.dx, 1);
+            move_and_add_state(current_cost, state.x, state.y, state.dy, -state.dx, 1);
             move_and_add_state(current_cost, state.x, state.y, -state.dy, state.dx, 1);
 
             if (state.distance < limit_same_dir)
+            {
+                if (state.dx == 1 and state.dy == 1)
+                    int s = 0;
                 move_and_add_state(current_cost, state.x, state.y, state.dx, state.dy, state.distance + 1);
+            }
         }
     }
 
