@@ -278,15 +278,13 @@ void move_and_add_state(i32 cost, i32 x, i32 y, i32 dx, i32 dy, i32 distance)
 
 }
 
-auto get_all_states_at_cost(i32 cost)
-{
-    auto res = vec<State>(state_by_cost[cost].begin(), state_by_cost[cost].end());
-    state_by_cost.erase(cost);
-    return res;
-}
-
 u64 part1()
 {
+    //
+    // taken from:
+    // reddit.com/r/adventofcode/comments/18luw6q/2023_day_17_a_longform_tutorial_on_day_17/
+    //
+
     auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
@@ -315,14 +313,8 @@ u64 part1()
     while (true)
     {
         auto current_cost = *ranges::min_element(state_by_cost | views::keys);
-        //println("current_cost: {}", current_cost);
+        auto next_states = state_by_cost.extract(current_cost).mapped();
         
-        //println("len state_by_cost before pop: {}", state_by_cost.size());
-        auto next_states = get_all_states_at_cost(current_cost);
-        //println("len state_by_cost after pop: {}", state_by_cost.size());
-        //println("next_states size: {}", next_states.size());
-        //println("");
-
         for (const auto& state : next_states)
         {
             // Perform the left and right turns
@@ -331,8 +323,6 @@ u64 part1()
 
             if (state.distance < limit_same_dir)
             {
-                if (state.dx == 1 and state.dy == 1)
-                    int s = 0;
                 move_and_add_state(current_cost, state.x, state.y, state.dx, state.dy, state.distance + 1);
             }
         }
@@ -367,7 +357,7 @@ int main()
     try
     {
         println("day 17 part 1: {}", part1());
-        //println("day 17 part 2: {}", part2());
+        println("day 17 part 2: {}", part2());
 
         return 0;
     }
