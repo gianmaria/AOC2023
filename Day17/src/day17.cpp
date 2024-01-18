@@ -147,11 +147,11 @@ vector<str> split_string(str_cref input, str_cref separator)
 
     while ((end = input.find(separator, start)) != str::npos)
     {
-        tokens.push_back(input.substr(start, end - start));
+        tokens.emplace_back(input.substr(start, end - start));
         start = end + separator.length();
     }
 
-    tokens.push_back(input.substr(start));
+    tokens.emplace_back(input.substr(start));
 
     return tokens;
 }
