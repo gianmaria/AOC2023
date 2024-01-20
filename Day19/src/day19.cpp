@@ -175,10 +175,10 @@ str get_time()
 
     if (localtime_s(&local_time, &time) == 0)
     {
-        char buffer[512]{};
+        char buffer[512] {};
         if (strftime(buffer, sizeof(buffer), "%H:%M:%S", &local_time) != 0)
         {
-            return { buffer };
+            return {buffer};
         }
     }
     return "";
@@ -202,13 +202,13 @@ str get_time()
 struct Condition
 {
     str rating;
-    char op;
+    str op;
     u32 value;
 };
 
 struct Rule
 {
-    Condition condition;
+    optional<Condition> condition;
     str destination;
 };
 
@@ -220,11 +220,6 @@ struct Part
 
 u64 part1()
 {
-    //
-    // taken from:
-    // reddit.com/r/adventofcode/comments/18luw6q/2023_day_17_a_longform_tutorial_on_day_17/
-    //
-
     auto file_path = "res\\test.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
@@ -260,27 +255,93 @@ u64 part1()
             ++it;
         }
         parts.emplace_back(part);
+    }
 
-        //line.erase(line.begin());
-        //line.erase(line.end()-1);
+    // rfg{s<537:gd,x>2440:R,A}
+    // px{a<2006:qkq,m>2090:A,rfg}
+    for (auto line : split_string(workflows_s, "\n"))
+    {
+        str workflow_name;
 
-        //for (const auto& part : split_string(line, ","))
-        //{
-        //    // x=787
-        //    split_string(part, "=");
-        //}
+        u64 pos = 0;
+        while (line[pos] != '{')
+        {
+            workflow_name.push_back(line[pos]);
+            ++pos;
+        }
+        line = line.substr(pos);
+        // {a<2006:qkq,m>2090:A,rfg}
+        line = line.substr(1);
+        line.pop_back();
+        // a<2006:qkq,m>2090:A,rfg
+
+        for (auto rule_str : split_string(line, ","))
+        {
+            // part = a<2006:qkq
+            // part = m>2090:A
+            // part = rfg
+
+            if (rule_str.contains(':'))
+            {
+                auto cond_dest_str = split_string(rule_str, ":");
+                // cond_dest_str[0] = a<2006
+                // cond_dest_str[1] = qkq
+
+                str split_on;
+                if (cond_dest_str[0].contains('<'))
+                {
+                    split_on = "<";
+                }
+                else if (cond_dest_str[0].contains('>'))
+                {
+                    split_on = ">";
+                }
+                else
+                {
+                    throw "invalid op!";
+                }
+
+                auto condition_parts = split_string(cond_dest_str[0], split_on);
+                // cond_dest[0] = a<2006
+                // condition_parts[0] = a
+                // condition_parts[1] = <
+                // condition_parts[2] = 2006
+
+                Condition condition;
+                condition.rating = condition_parts[0];
+                condition.op = split_on;
+                std::from_chars(condition_parts[1].data(), 
+                                condition_parts[1].data() + condition_parts[1].size(), 
+                                condition.value);
+
+                Rule rule;
+                rule.destination = cond_dest_str[1];
+                rule.condition = condition;
+
+                workflows[workflow_name].push_back(rule);
+            }
+            else
+            {
+                Rule rule;
+                rule.destination = rule_str;
+                rule.condition = std::nullopt;
+
+                workflows[workflow_name].push_back(rule);
+            }
+        }
 
     }
+
     int s = 0;
 
 
+#if 0
     // workflow: {name:str, rules: [rule1, rule2,...]}
     // rule1: {condition, destination:str}
     // rule2: {condition, destination:str}
     // condition: {rating: str, value: u32, op:char}
 
     // parts: {part, rating}
-#if 0
     apply(rule, part)
     {
         part_val = part[rule.condition.rating];
@@ -292,7 +353,7 @@ u64 part1()
         {
             res = part_val < rule.condition.value;
         }
-        return res 
+        return res
     }
 
     for (part : parts)
