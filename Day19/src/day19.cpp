@@ -212,12 +212,6 @@ struct Rule
     str destination;
 };
 
-struct Part
-{
-    str rating;
-    u32 value;
-};
-
 u64 part1()
 {
     auto file_path = "res\\test.txt";
@@ -310,8 +304,8 @@ u64 part1()
                 Condition condition;
                 condition.rating = condition_parts[0];
                 condition.op = split_on;
-                std::from_chars(condition_parts[1].data(), 
-                                condition_parts[1].data() + condition_parts[1].size(), 
+                std::from_chars(condition_parts[1].data(),
+                                condition_parts[1].data() + condition_parts[1].size(),
                                 condition.value);
 
                 Rule rule;
@@ -333,6 +327,101 @@ u64 part1()
     }
 
     int s = 0;
+
+    auto apply = [](Rule& rule, map<str, u32>& part)
+    {
+        auto part_val = part[rule.condition->rating];
+
+        if (rule.condition->op == ">")
+        {
+            return part_val > rule.condition->value;
+        }
+        else
+        {
+            return part_val < rule.condition->value;
+        }
+
+    };
+
+    u64 acc = 0;
+    for (auto& part : parts)
+    {
+        // part: {x=787,m=2655,a=1222,s=2876}
+        cout << "{"
+            << "x=" << part["x"] << ","
+            << "m=" << part["m"] << ","
+            << "a=" << part["a"] << ","
+            << "s=" << part["s"] << ","
+            << "}: ";
+
+        auto* workflow = &workflows["in"];
+        cout << "in";
+
+        // workflow = px{a<2006:qkq,m>2090:A,rfg}
+        bool found = false;
+        while (not found)
+        {
+            for (auto& rule : *workflow)
+            {
+                if (rule.condition.has_value())
+                {
+                    if (apply(rule, part))
+                    {
+                        if (rule.destination == "A" or
+                            rule.destination == "R")
+                        {
+                            if (rule.destination == "A")
+                            {
+                                cout << " -> A";
+                                acc += part["x"] + part["m"] + part["a"] + part["s"];
+                            }
+                            else
+                            {
+                                cout << " -> R";
+                            }
+
+                            found = true;
+                            break;
+                        }
+                        else
+                        {
+
+                            workflow = &workflows[rule.destination];
+                            cout << " -> " << rule.destination;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    if (rule.destination == "A" or
+                        rule.destination == "R")
+                    {
+                        if (rule.destination == "A")
+                        {
+                            cout << " -> A";
+                            acc += part["x"] + part["m"] + part["a"] + part["s"];
+                        }
+                        else
+                        {
+                            cout << " -> R";
+                        }
+                        found = true;
+                        break;
+                    }
+                    else
+                    {
+                        workflow = &workflows[rule.destination];
+                        cout << " -> " << rule.destination;
+                        break;
+                    }
+                }
+            }
+
+        }
+        cout << endl;
+
+    }
 
 
 #if 0
@@ -371,7 +460,7 @@ u64 part1()
                     workflow = workflows[rule.destination];
                     break;
                 }
-            }
+                        }
 
             if (workflow.name == "A")
             {
@@ -382,12 +471,12 @@ u64 part1()
             {
                 break;
             }
-        }
+                    }
 
-    }
+                }
 #endif
 
-    return 0;
+    return acc;
 }
 
 u64 part2()
