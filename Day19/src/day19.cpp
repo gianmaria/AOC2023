@@ -214,7 +214,7 @@ struct Rule
 
 u64 part1()
 {
-    auto file_path = "res\\test.txt";
+    auto file_path = "res\\input.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
@@ -423,65 +423,12 @@ u64 part1()
 
     }
 
-
-#if 0
-    // workflow: {name:str, rules: [rule1, rule2,...]}
-    // rule1: {condition, destination:str}
-    // rule2: {condition, destination:str}
-    // condition: {rating: str, value: u32, op:char}
-
-    // parts: {part, rating}
-    apply(rule, part)
-    {
-        part_val = part[rule.condition.rating];
-        if (rule.condition.op == '>')
-        {
-            res = part_val > rule.condition.value;
-        }
-        else
-        {
-            res = part_val < rule.condition.value;
-        }
-        return res
-    }
-
-    for (part : parts)
-    {
-        // part: {x=787,m=2655,a=1222,s=2876}
-
-        workflow = workflows["in"];
-
-        while (true)
-        {
-            for (rule : workflow.rules)
-            {
-                if (apply(rule, part))
-                {
-                    workflow = workflows[rule.destination];
-                    break;
-                }
-                        }
-
-            if (workflow.name == "A")
-            {
-                acc += part.x + part.m, part.a, part.s;
-                break;
-            }
-            else if (workflow.name == "R")
-            {
-                break;
-            }
-                    }
-
-                }
-#endif
-
     return acc;
 }
 
 u64 part2()
 {
-    auto file_path = "res\\input.txt";
+    auto file_path = "res\\test.txt";
     auto ifs = std::ifstream(file_path);
     if (not ifs.is_open())
         throw std::format("Cannot open file <{}>", file_path);
